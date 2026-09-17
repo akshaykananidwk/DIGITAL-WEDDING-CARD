@@ -178,7 +178,7 @@ final class TemplateEngine
                 if ($path === '') {
                     continue;
                 }
-                $url = \App\Core\Url::to(ltrim($path, '/'));
+                $url = \App\Core\Url::path(ltrim($path, '/'));
                 $family = preg_replace('/[^A-Za-z0-9 \-]/', '', (string) $font['family']) ?? 'sans-serif';
                 $css .= "@font-face{font-family:'" . $family . "';"
                     . "src:url('" . $url . "') format('truetype');"

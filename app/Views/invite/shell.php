@@ -78,7 +78,7 @@ $htmlLang = match ($language) {
     <?php endif; ?>
 </div>
 
-<script src="<?= e(asset('js/invite.js')) ?>" defer></script>
+<script defer<?= App\Core\Csp::attribute() ?> src="<?= e(asset('js/invite.js')) ?>"></script>
 <?php if (trim($scripts) !== ''): ?>
     <script<?= Csp::attribute() ?>><?= $scripts ?></script>
 <?php endif; ?>

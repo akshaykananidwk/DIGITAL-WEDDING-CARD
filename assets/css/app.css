@@ -381,14 +381,29 @@ a:hover { color: var(--sk-primary-dark); text-decoration: underline; }
 .sk-health-dot--warning  { background: #EAB308; }
 .sk-health-dot--critical { background: #DC2626; }
 
+/* An inline code chip: a slug, a permission name, a path. Wraps rather than
+   widening the page, which matters on a phone. */
 .sk-code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: .78rem;
+    background: var(--sk-cream-deep);
+    color: var(--sk-ink);
+    border-radius: 6px;
+    padding: .1rem .35rem;
+    word-break: break-all;
+    overflow-wrap: anywhere;
+}
+/* The block form, for a command or a reference code the user copies. */
+.sk-code-block {
+    display: block;
     font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
     font-size: .82rem;
     background: #1D1B19; color: #EBE3D4;
     border-radius: var(--sk-radius-sm);
     padding: .75rem .9rem;
     overflow-x: auto;
-    white-space: pre;
+    white-space: pre-wrap;
+    word-break: break-word;
 }
 
 /* ---- Reduced motion: honour the user's preference everywhere ---- */
@@ -581,3 +596,12 @@ a:hover { color: var(--sk-primary-dark); text-decoration: underline; }
 .sk-prose ul, .sk-prose ol { padding-left: 1.3rem; }
 .sk-prose li { margin-bottom: .35rem; }
 .sk-prose table { width: 100%; margin: 1rem 0; }
+
+/* Long unbreakable values - a repository name, a path, an email - must wrap
+   rather than widen the page on a phone. */
+.sk-panel dd,
+.sk-row__meta,
+.sk-stat__hint,
+.sk-table-wrap td {
+    overflow-wrap: anywhere;
+}

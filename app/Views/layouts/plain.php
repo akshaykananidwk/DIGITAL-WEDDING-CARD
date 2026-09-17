@@ -22,7 +22,7 @@
 </head>
 <body class="bg-body-tertiary">
 <?= $content ?>
-<script src="<?= e(asset('vendor/bootstrap.bundle.min.js')) ?>" defer></script>
+<script defer<?= App\Core\Csp::attribute() ?> src="<?= e(asset('vendor/bootstrap.bundle.min.js')) ?>"></script>
 <?= $view->section('scripts') ?>
 </body>
 </html>

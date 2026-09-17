@@ -43,3 +43,7 @@ nbproject/
 # ---- Composer (optional; app runs without it) ----
 /vendor/
 composer.lock
+
+# ---- Optional developer tooling (never needed in production) ----
+tests/browser/node_modules/
+tests/browser/package*.json

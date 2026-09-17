@@ -37,7 +37,7 @@ $showDebug = $showDebug ?? false;
         </div>
 
         <?php if ($showDebug && isset($exception)): ?>
-            <div class="sk-code mt-4">
+            <div class="sk-code-block mt-4">
 <?= e($exception::class . ': ' . $exception->getMessage()) ?>
 
 <?= e($exception->getFile() . ':' . $exception->getLine()) ?>

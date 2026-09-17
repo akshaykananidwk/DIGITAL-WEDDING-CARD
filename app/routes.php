@@ -51,6 +51,7 @@ $router->group('', ['installed', 'maintenance'], static function ($router): void
     $router->get('/sitemap.xml', [Web\SeoController::class, 'sitemap']);
     $router->get('/robots.txt', [Web\SeoController::class, 'robots']);
     $router->get('/manifest.webmanifest', [Web\SeoController::class, 'manifest']);
+    $router->get('/service-worker.js', [Web\SeoController::class, 'serviceWorker']);
     $router->get('/offline', [Web\SeoController::class, 'offline'], [], 'offline');
 
     // ---- Public invitation ----

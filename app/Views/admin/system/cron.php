@@ -110,7 +110,8 @@ $view->extend('layouts.admin');
                         <input class="form-control font-monospace" type="text" readonly
                                id="cmd-<?= e(md5($label)) ?>" value="<?= e($command) ?>">
                         <button class="btn btn-outline-secondary" type="button"
-                                data-sk-copy="#cmd-<?= e(md5($label)) ?>" data-sk-copy-message="Copied">
+                                data-sk-copy="#cmd-<?= e(md5($label)) ?>" data-sk-copy-message="Copied"
+                                aria-label="<?= eattr('Copy the ' . $label . ' command') ?>">
                             <i class="bi bi-clipboard" aria-hidden="true"></i>
                         </button>
                     </div>

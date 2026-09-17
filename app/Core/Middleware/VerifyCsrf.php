@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Core\Middleware;
 
+use App\Core\Auth;
 use App\Core\Csrf;
 use App\Core\Request;
 use App\Core\Response;
@@ -23,6 +24,15 @@ final class VerifyCsrf implements MiddlewareInterface
         if (in_array($request->method(), self::SAFE_METHODS, true)) {
             return $next($request);
         }
+
+        // A bearer token is not sent automatically by a browser, so a hostile
+        // page cannot make the request in the first place: there is nothing
+        // for a CSRF token to add. Cookie-authenticated requests, which are
+        // the vulnerable ones, are always checked.
+        if (Auth::isTokenAuthenticated()) {
+            return $next($request);
+        }
+
         Csrf::verify();
         return $next($request);
     }

@@ -585,7 +585,7 @@ final class HealthService
                 $age = time() - (int) strtotime((string) $stuck['started_at']);
                 if ($age > 1800) {
                     return $this->check('update', 'Update state', self::CRITICAL,
-                        'An update has been stuck at "' . $stuck['step'] . '" for ' . $this->humanAge($age)
+                        'An update stalled at "' . $stuck['step'] . '", started ' . $this->humanAge($age)
                         . '. Clear the lock in System → Updates.');
                 }
                 return $this->check('update', 'Update state', self::WARNING,

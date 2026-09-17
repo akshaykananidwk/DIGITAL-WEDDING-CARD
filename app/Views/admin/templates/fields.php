@@ -258,7 +258,7 @@ $optionText = static function (mixed $options): string {
 </div>
 
 <?php $view->start('scripts'); ?>
-<script src="<?= e(asset('vendor/sortable.min.js')) ?>" defer></script>
+<script defer<?= App\Core\Csp::attribute() ?> src="<?= e(asset('vendor/sortable.min.js')) ?>"></script>
 <script<?= App\Core\Csp::attribute() ?>>
     window.addEventListener('load', function () {
         const list = document.getElementById('sk-field-list');

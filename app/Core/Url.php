@@ -82,18 +82,45 @@ final class Url
         return $url;
     }
 
-    /** Asset URL with a content hash so browsers can cache for a year. */
+    /**
+     * A root-relative URL for something on this site.
+     *
+     * Used for assets, uploads and in-page navigation. Staying same-origin by
+     * construction means a request arriving on a hostname that differs from
+     * the configured site URL - www versus bare, an IP address, a staging
+     * alias - still loads its own stylesheets, and the Content-Security-Policy
+     * has nothing to second-guess. Absolute URLs are reserved for the places
+     * that genuinely need one: emails, share links, QR codes, the sitemap and
+     * canonical tags.
+     */
+    public static function path(string $path = '/', array $query = []): string
+    {
+        if (preg_match('#^(https?:)?//#i', $path) === 1 || str_starts_with($path, 'mailto:')) {
+            return $path;
+        }
+        $url = self::basePath() . '/' . ltrim($path, '/');
+        $url = rtrim($url, '/');
+        if ($url === '') {
+            $url = '/';
+        }
+        if ($query !== []) {
+            $url .= (str_contains($url, '?') ? '&' : '?') . http_build_query($query);
+        }
+        return $url;
+    }
+
+    /** Asset URL, cache-busted by the file's modification time. */
     public static function asset(string $path): string
     {
         $relative = 'assets/' . ltrim($path, '/');
         $file = ROOT_PATH . '/' . $relative;
         $version = is_file($file) ? substr((string) filemtime($file), -6) : (string) Version::current();
-        return self::to($relative) . '?v=' . $version;
+        return self::path($relative) . '?v=' . $version;
     }
 
     public static function upload(string $path): string
     {
-        return self::to('uploads/' . ltrim($path, '/'));
+        return self::path('uploads/' . ltrim($path, '/'));
     }
 
     /** Public invitation URL for a slug. */

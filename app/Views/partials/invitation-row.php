@@ -37,13 +37,16 @@ $eventAt = $i['event_at'] ?? null;
     </div>
     <div class="sk-row__actions">
         <a class="btn btn-sm btn-outline-secondary" href="<?= e(url('builder/' . $i['id'])) ?>"
-           title="<?= eattr(__('common.edit')) ?>"><i class="bi bi-pencil" aria-hidden="true"></i></a>
+           title="<?= eattr(__('common.edit')) ?>"
+           aria-label="<?= eattr(__('common.edit') . ': ' . $i['title']) ?>"><i class="bi bi-pencil" aria-hidden="true"></i></a>
         <?php if ($status === 'published'): ?>
             <a class="btn btn-sm btn-outline-secondary" href="<?= e(url('invite/' . $i['slug'])) ?>" target="_blank"
-               rel="noopener" title="<?= eattr(__('common.view')) ?>"><i class="bi bi-box-arrow-up-right" aria-hidden="true"></i></a>
+               rel="noopener" title="<?= eattr(__('common.view')) ?>"
+               aria-label="<?= eattr(__('common.view') . ': ' . $i['title']) ?>"><i class="bi bi-box-arrow-up-right" aria-hidden="true"></i></a>
         <?php else: ?>
             <a class="btn btn-sm btn-outline-secondary" href="<?= e(url('builder/' . $i['id'] . '/preview')) ?>" target="_blank"
-               rel="noopener" title="<?= eattr(__('builder.step_preview')) ?>"><i class="bi bi-eye" aria-hidden="true"></i></a>
+               rel="noopener" title="<?= eattr(__('builder.step_preview')) ?>"
+               aria-label="<?= eattr(__('builder.step_preview') . ': ' . $i['title']) ?>"><i class="bi bi-eye" aria-hidden="true"></i></a>
         <?php endif; ?>
         <div class="dropdown">
             <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="dropdown"

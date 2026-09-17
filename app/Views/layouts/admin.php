@@ -159,8 +159,8 @@ $nav = [
 <script<?= Csp::attribute() ?>>
     window.SK_CONFIG = <?= ejs(['baseUrl' => Url::base(), 'csrfToken' => csrf_token(), 'locale' => $locale]) ?>;
 </script>
-<script src="<?= e(asset('vendor/bootstrap.bundle.min.js')) ?>" defer></script>
-<script src="<?= e(asset('js/app.js')) ?>" defer></script>
+<script defer<?= App\Core\Csp::attribute() ?> src="<?= e(asset('vendor/bootstrap.bundle.min.js')) ?>"></script>
+<script defer<?= App\Core\Csp::attribute() ?> src="<?= e(asset('js/app.js')) ?>"></script>
 <?= $view->section('scripts') ?>
 </body>
 </html>

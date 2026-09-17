@@ -159,6 +159,6 @@ $breakdown = static function (array $data): array {
 </div>
 
 <?php $view->start('scripts'); ?>
-<script src="<?= e(asset('vendor/chart.umd.min.js')) ?>" defer></script>
-<script src="<?= e(asset('js/charts.js')) ?>" defer></script>
+<script defer<?= App\Core\Csp::attribute() ?> src="<?= e(asset('vendor/chart.umd.min.js')) ?>"></script>
+<script defer<?= App\Core\Csp::attribute() ?> src="<?= e(asset('js/charts.js')) ?>"></script>
 <?php $view->stop(); ?>

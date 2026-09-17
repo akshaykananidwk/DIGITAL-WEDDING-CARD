@@ -24,6 +24,28 @@ final class SeoController extends Controller
         return Response::text((new SitemapService())->robots())->cache(3600);
     }
 
+    /**
+     * The service worker.
+     *
+     * Served through the application rather than as a static file so it always
+     * arrives with a JavaScript content type and a root scope header, on hosts
+     * whose rewrite rules would otherwise send it here as a 404.
+     */
+    public function serviceWorker(Request $request): Response
+    {
+        $path = ROOT_PATH . '/service-worker.js';
+        if (!is_file($path)) {
+            throw \App\Core\HttpException::notFound();
+        }
+
+        return Response::make((string) file_get_contents($path), 200, [
+            'Content-Type'           => 'application/javascript; charset=utf-8',
+            // Lets a worker served from anywhere control the whole origin.
+            'Service-Worker-Allowed' => Url::basePath() . '/',
+            'Cache-Control'          => 'no-cache, must-revalidate',
+        ]);
+    }
+
     public function manifest(Request $request): Response
     {
         $settings = SettingsService::instance();

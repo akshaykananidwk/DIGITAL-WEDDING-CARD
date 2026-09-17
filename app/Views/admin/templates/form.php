@@ -305,7 +305,7 @@ $flag = static fn (string $key, bool $default = false): bool
 </form>
 
 <?php $view->start('scripts'); ?>
-<script src="<?= e(asset('js/builder.js')) ?>" defer></script>
+<script defer<?= App\Core\Csp::attribute() ?> src="<?= e(asset('js/builder.js')) ?>"></script>
 <script<?= App\Core\Csp::attribute() ?>>
     window.addEventListener('load', function () { SK.builder.init({ invitationId: 0 }); });
 </script>

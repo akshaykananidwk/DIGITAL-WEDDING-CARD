@@ -123,3 +123,7 @@
     white-space: pre-wrap;
     word-break: break-word;
 }
+
+/* ---- Accordion headers with badges ---- */
+.accordion-button { flex-wrap: wrap; gap: .25rem .5rem; }
+.accordion-button::after { margin-left: auto; }

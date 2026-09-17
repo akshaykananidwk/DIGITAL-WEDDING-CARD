@@ -24,6 +24,7 @@ final class Auth
 
     private static ?array $user = null;
     private static bool $resolved = false;
+    private static bool $tokenAuthenticated = false;
     /** @var array<int,string>|null */
     private static ?array $permissions = null;
 
@@ -130,6 +131,29 @@ final class Auth
 
         Logger::info('Login successful', ['user_id' => $user['id']], Logger::LOGIN);
         AuditService::instance()->log('auth.login', 'user', (int) $user['id']);
+    }
+
+    /**
+     * Authenticate for this request only, without touching the session.
+     *
+     * A bearer token carries its own credential on every request, so there is
+     * nothing to remember between them: no session is started, no cookie is
+     * set and no login is recorded. It also leaves the request distinguishable
+     * from a cookie-authenticated one, which is what lets the CSRF check skip
+     * a token call safely.
+     */
+    public static function actAsToken(array $user): void
+    {
+        self::$user = $user;
+        self::$resolved = true;
+        self::$permissions = null;
+        self::$tokenAuthenticated = true;
+    }
+
+    /** Was this request authenticated by a bearer token rather than a cookie? */
+    public static function isTokenAuthenticated(): bool
+    {
+        return self::$tokenAuthenticated;
     }
 
     public static function logout(): void

@@ -202,8 +202,8 @@ $brandPrimary = (string) (setting('brand_primary') ?: '#C8102E');
         'serviceWorker'  => Url::to('service-worker.js'),
     ]) ?>;
 </script>
-<script src="<?= e(asset('vendor/bootstrap.bundle.min.js')) ?>" defer></script>
-<script src="<?= e(asset('js/app.js')) ?>" defer></script>
+<script defer<?= App\Core\Csp::attribute() ?> src="<?= e(asset('vendor/bootstrap.bundle.min.js')) ?>"></script>
+<script defer<?= App\Core\Csp::attribute() ?> src="<?= e(asset('js/app.js')) ?>"></script>
 <?= $view->section('scripts') ?>
 </body>
 </html>

@@ -534,8 +534,8 @@ $themeValue = static fn (string $key, string $default = ''): string
 </div>
 
 <?php $view->start('scripts'); ?>
-<script src="<?= e(asset('vendor/sortable.min.js')) ?>" defer></script>
-<script src="<?= e(asset('js/builder.js')) ?>" defer></script>
+<script defer<?= App\Core\Csp::attribute() ?> src="<?= e(asset('vendor/sortable.min.js')) ?>"></script>
+<script defer<?= App\Core\Csp::attribute() ?> src="<?= e(asset('js/builder.js')) ?>"></script>
 <script<?= App\Core\Csp::attribute() ?>>
     window.addEventListener('load', function () {
         SK.builder.init(<?= ejs([

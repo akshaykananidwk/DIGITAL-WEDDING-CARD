@@ -82,7 +82,9 @@ final class UpdateRepository extends BaseRepository
     {
         $row = $this->db->first(
             'SELECT * FROM ' . $this->qualified() . "
-             WHERE status NOT IN ('success', 'failed', 'rolled_back') ORDER BY id DESC LIMIT 1"
+             WHERE finished_at IS NULL
+               AND status NOT IN ('success', 'failed', 'rolled_back')
+             ORDER BY id DESC LIMIT 1"
         );
         return $row === null ? null : $this->hydrate($row);
     }

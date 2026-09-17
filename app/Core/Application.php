@@ -237,20 +237,28 @@ final class Application
 
         if ((bool) Config::get('security.csp_enabled', true)) {
             $nonce = Csp::nonce();
+
+            // Assets are served root-relative, so 'self' normally covers
+            // everything. A site URL pointing at another origin (a CDN, or a
+            // canonical host that differs from the one serving the request) is
+            // named explicitly so the page is never left without its styles.
+            $origin = self::originOf((string) Config::get('app.url', ''));
+            $self = "'self'" . ($origin === '' ? '' : ' ' . $origin);
+
             $csp = implode('; ', [
-                "default-src 'self'",
+                "default-src {$self}",
                 "base-uri 'self'",
                 "object-src 'none'",
                 "frame-ancestors 'self'",
-                "form-action 'self'",
-                "img-src 'self' data: blob: https:",
-                "media-src 'self' blob: https:",
-                "font-src 'self' data:",
+                "form-action {$self}",
+                "img-src {$self} data: blob: https:",
+                "media-src {$self} blob: https:",
+                "font-src {$self} data:",
                 // Invitation templates carry their own inline CSS.
-                "style-src 'self' 'unsafe-inline'",
-                "script-src 'self' 'nonce-{$nonce}' 'strict-dynamic' 'unsafe-inline' https:",
-                "connect-src 'self'",
-                "worker-src 'self'",
+                "style-src {$self} 'unsafe-inline'",
+                "script-src {$self} 'nonce-{$nonce}' 'strict-dynamic' 'unsafe-inline' https:",
+                "connect-src {$self}",
+                "worker-src {$self}",
             ]);
             $header = (bool) Config::get('security.csp_report_only', false)
                 ? 'Content-Security-Policy-Report-Only'
@@ -258,6 +266,17 @@ final class Application
             $response->header($header, $csp);
         }
 
-        return $response;
+                return $response;
+    }
+
+    /** scheme://host[:port] of a URL, or '' if it is not one. */
+    private static function originOf(string $url): string
+    {
+        $parts = parse_url($url);
+        if (!is_array($parts) || !isset($parts['scheme'], $parts['host'])) {
+            return '';
+        }
+        return $parts['scheme'] . '://' . $parts['host']
+            . (isset($parts['port']) ? ':' . $parts['port'] : '');
     }
 }

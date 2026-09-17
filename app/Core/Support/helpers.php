@@ -61,7 +61,22 @@ if (!function_exists('app')) {
 
 if (!function_exists('url')) {
     /** Absolute URL for an application path. */
+    /**
+     * A URL for a page of this application, relative to the site root.
+     *
+     * Relative on purpose: a link or form action must work on whatever
+     * hostname the visitor arrived on. Use `url_abs()` where the URL leaves
+     * the page - an email, a share link, a QR code, a canonical tag.
+     */
     function url(string $path = '/', array $query = []): string
+    {
+        return Url::path($path, $query);
+    }
+}
+
+if (!function_exists('url_abs')) {
+    /** An absolute URL, for anything that travels outside the page. */
+    function url_abs(string $path = '/', array $query = []): string
     {
         return Url::to($path, $query);
     }

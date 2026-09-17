@@ -29,7 +29,7 @@ final class ApiAuth implements MiddlewareInterface
             $token = trim(substr($header, 7));
             $user = (new ApiTokenRepository())->resolveUser($token);
             if (is_array($user)) {
-                Auth::login($user);
+                Auth::actAsToken($user);
                 return $next($request);
             }
         }
