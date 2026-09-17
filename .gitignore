@@ -7,6 +7,10 @@ storage/installed.lock
 .installed
 
 # ---- Runtime state ----
+# Anything the application writes into storage/ or uploads/ at runtime,
+# whatever subdirectory it invents, stays out of the repository.
+storage/*
+!storage/.htaccess
 storage/logs/*
 storage/cache/*
 storage/sessions/*
@@ -16,6 +20,9 @@ storage/update/*
 !storage/**/.gitkeep
 
 # ---- User generated content ----
+uploads/*
+!uploads/.htaccess
+!uploads/.gitkeep
 uploads/photos/*
 uploads/thumbs/*
 uploads/music/*
