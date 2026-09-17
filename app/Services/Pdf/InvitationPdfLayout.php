@@ -30,7 +30,12 @@ final class InvitationPdfLayout
 
     private float $margin = 46.0;
     private float $contentWidth;
+    /** Ink stops here: nothing is drawn below it. */
+    private const BOTTOM_MARGIN = 44.0;
+
     private float $cursor = 0.0;
+    /** True once the layout has spilled onto a continuation page. */
+    private bool $continuation = false;
 
     /** @param array<string,string> $fontFiles alias => absolute path */
     public function __construct(
@@ -304,6 +309,7 @@ final class InvitationPdfLayout
         if ($groomParents === '' && $brideParents === '') {
             return;
         }
+        $this->ensureSpace(90);
 
         $muted = $this->context->theme('muted', '#7A6A55');
         $textColor = $this->context->theme('text', '#3D2B1F');
@@ -354,6 +360,7 @@ final class InvitationPdfLayout
         if ($venue === '' && $address === '') {
             return;
         }
+        $this->ensureSpace(110);
 
         $this->divider($this->cursor, 0.35);
         $this->cursor += 22;
@@ -400,6 +407,27 @@ final class InvitationPdfLayout
         $this->cursor += 17;
     }
 
+    /**
+     * Make sure there is room for the next block, starting a continuation page
+     * if there is not.
+     *
+     * A wedding with eight functions and forty names has to fit somewhere: the
+     * alternative - which this replaces - was to stop drawing and lose the
+     * rest, which is the one outcome a printed invitation cannot have.
+     */
+    private function ensureSpace(float $needed): void
+    {
+        if ($this->cursor + $needed <= $this->pdf->height() - self::BOTTOM_MARGIN) {
+            return;
+        }
+
+        $this->pdf->addPage();
+        $this->drawBackground();
+        $this->drawBorder();
+        $this->cursor = $this->margin + 40;
+        $this->continuation = true;
+    }
+
     private function drawSchedule(): void
     {
         $schedule = $this->rawSchedule();
@@ -414,9 +442,8 @@ final class InvitationPdfLayout
         $rule = $this->shade($this->context->theme('secondary', '#F0B429'), 0.35);
 
         foreach ($schedule as $event) {
-            if ($this->cursor > $this->pdf->height() - 210) {
-                break; // leave room for the QR block
-            }
+            // A row plus its rule; a new page if that no longer fits.
+            $this->ensureSpace(24);
             $this->setFontFor($event['label'], self::FONT_SERIF, 11);
             $this->pdf->text($this->margin + 30, $this->cursor, $event['label'], $textColor);
 
@@ -475,19 +502,27 @@ final class InvitationPdfLayout
         if ($names === []) {
             return;
         }
+        $this->ensureSpace(50);
         $this->drawLabel(Lang::get('pdf.with_best_wishes'));
 
-        $joined = implode('  •  ', array_slice($names, 0, 24));
+        // A joint family invitation can list a lot of names. They are wrapped
+        // and flowed line by line so the list continues onto the next page
+        // rather than being cut off - the cap is only there to stop a
+        // pathological paste producing fifty pages.
+        $joined = implode('  •  ', array_slice($names, 0, 200));
         $this->setFontFor($joined, self::FONT_SANS, 10);
-        $this->cursor = $this->pdf->paragraph(
-            $this->margin + 30,
-            $this->cursor,
-            $this->contentWidth - 60,
-            $joined,
-            $this->context->theme('text', '#4A3728'),
-            'center',
-            14
-        );
+        $colour = $this->context->theme('text', '#4A3728');
+        $width = $this->contentWidth - 60;
+
+        foreach ($this->pdf->wrapText($joined, $width) as $line) {
+            if (trim($line) === '') {
+                continue;
+            }
+            $this->ensureSpace(16);
+            $this->setFontFor($line, self::FONT_SANS, 10);
+            $this->pdf->text($this->margin + 30 + ($width / 2), $this->cursor, $line, $colour, 'center');
+            $this->cursor += 14;
+        }
         $this->cursor += 10;
     }
 
@@ -498,6 +533,7 @@ final class InvitationPdfLayout
         if ($name === '' && $phone === '') {
             return;
         }
+        $this->ensureSpace(26);
         $line = Lang::get('pdf.rsvp') . ': ' . trim($name . ($phone !== '' ? '  ·  ' . Str::phone($phone) : ''));
         $this->setFontFor($line, self::FONT_SANS, 10);
         $this->pdf->text(
@@ -514,7 +550,21 @@ final class InvitationPdfLayout
     private function drawFooter(): void
     {
         $qrSize = 92.0;
-        $top = max($this->cursor + 6, $this->pdf->height() - 52 - $qrSize - 30);
+        $pin = $this->pdf->height() - 52 - $qrSize - 30;
+        $top = max($this->cursor + 6, $pin);
+
+        // The block is tall: divider, QR, caption, link. Where the card's own
+        // content has pushed it past the paper edge it continues overleaf
+        // instead - measured from where it would actually be drawn, not from a
+        // reserve subtracted out of every page.
+        if ($top + $qrSize + 34 > $this->pdf->height() - 18) {
+            $this->pdf->addPage();
+            $this->drawBackground();
+            $this->drawBorder();
+            $this->cursor = $this->margin + 40;
+            $this->continuation = true;
+            $top = max($this->cursor + 6, $pin);
+        }
 
         $this->divider($top - 14, 0.3);
 

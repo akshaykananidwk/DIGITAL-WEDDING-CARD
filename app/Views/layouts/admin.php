@@ -157,7 +157,7 @@ $nav = [
 <?php endforeach; ?>
 
 <script<?= Csp::attribute() ?>>
-    window.SK_CONFIG = <?= ejs(['baseUrl' => Url::base(), 'csrfToken' => csrf_token(), 'locale' => $locale]) ?>;
+    window.SK_CONFIG = <?= ejs(['baseUrl' => Url::basePath(), 'csrfToken' => csrf_token(), 'locale' => $locale]) ?>;
 </script>
 <script defer<?= App\Core\Csp::attribute() ?> src="<?= e(asset('vendor/bootstrap.bundle.min.js')) ?>"></script>
 <script defer<?= App\Core\Csp::attribute() ?> src="<?= e(asset('js/app.js')) ?>"></script>

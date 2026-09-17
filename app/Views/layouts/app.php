@@ -196,10 +196,10 @@ $brandPrimary = (string) (setting('brand_primary') ?: '#C8102E');
 
 <script<?= Csp::attribute() ?>>
     window.SK_CONFIG = <?= ejs([
-        'baseUrl'        => Url::base(),
+        'baseUrl'        => Url::basePath(),
         'csrfToken'      => csrf_token(),
         'locale'         => $locale,
-        'serviceWorker'  => Url::to('service-worker.js'),
+        'serviceWorker'  => Url::path('service-worker.js'),
     ]) ?>;
 </script>
 <script defer<?= App\Core\Csp::attribute() ?> src="<?= e(asset('vendor/bootstrap.bundle.min.js')) ?>"></script>

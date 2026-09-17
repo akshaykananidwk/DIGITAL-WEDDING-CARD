@@ -31,6 +31,7 @@ final class ExportTest extends TestCase
         $this->qrService($invitation);
         $this->pdfWriter();
         $this->pdfService($invitation);
+        $this->pdfPagination($invitation);
         $this->indicText();
         $this->calendar($invitation);
         $this->sharing($invitation);
@@ -165,6 +166,37 @@ final class ExportTest extends TestCase
                 '/^[a-z0-9\-]+\.pdf$/',
                 (string) $result['filename']
             );
+        }
+    }
+
+    /** A card with more content than fits must continue, never truncate. */
+    private function pdfPagination(array $invitation): void
+    {
+        if ($invitation === []) {
+            $this->pass('PDF pagination: skipped, no invitation present');
+            return;
+        }
+
+        $data = new \App\Repositories\InvitationDataRepository();
+        $original = $data->forInvitation((int) $invitation['id'])['family_names'] ?? null;
+
+        try {
+            $names = array_map(static fn (int $i): string => 'Suite Relative ' . $i, range(1, 40));
+            $data->saveMany((int) $invitation['id'], ['family_names' => implode("\n", $names)]);
+            \App\Core\Cache::flush();
+
+            $fresh = (array) (new InvitationRepository())->find((int) $invitation['id']);
+            $bytes = (string) (new PdfService())->forInvitation($fresh, PdfService::VARIANT_A4)['bytes'];
+
+            // Two /Type /Page objects means the layout continued rather than
+            // drawing past the paper edge.
+            $pages = preg_match_all('#/Type\s*/Page[^s]#', $bytes);
+            $this->assertGreaterThan('PDF pagination: a long card runs to a second page', 1, (float) $pages);
+            $this->assertContains('PDF pagination: the document is still well formed', '%%EOF', $bytes);
+            $this->assertGreaterThan('PDF pagination: the document grew', 10000, (float) strlen($bytes));
+        } finally {
+            $data->saveMany((int) $invitation['id'], ['family_names' => (string) $original]);
+            \App\Core\Cache::flush();
         }
     }
 

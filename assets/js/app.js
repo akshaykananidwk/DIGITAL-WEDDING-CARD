@@ -310,7 +310,8 @@
     function registerServiceWorker() {
         if (!('serviceWorker' in navigator) || !SK.config.serviceWorker) { return; }
         window.addEventListener('load', function () {
-            navigator.serviceWorker.register(SK.config.serviceWorker, { scope: SK.config.baseUrl + '/' })
+            const scope = (SK.config.baseUrl || '').replace(/\/$/, '') + '/';
+            navigator.serviceWorker.register(SK.config.serviceWorker, { scope: scope })
                 .catch(function () { /* offline support is a bonus, never a requirement */ });
         });
     }
