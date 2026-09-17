@@ -265,6 +265,8 @@ final class TemplateController extends AdminController
             'scripts'   => $this->engine->scripts($context),
             'seo'       => SeoService::make()->title((string) $template['name'])->noindex(),
             'isPreview' => true,
+            // A showcase: show the opening animation as a guest would see it.
+            'liveEdit'  => false,
         ]);
     }
 

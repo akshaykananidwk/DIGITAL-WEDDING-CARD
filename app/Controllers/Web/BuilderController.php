@@ -489,6 +489,7 @@ final class BuilderController extends Controller
             'scripts'   => $this->engine->scripts($context),
             'seo'       => SeoService::make()->title((string) $invitation['title'])->noindex(),
             'isPreview' => true,
+            'liveEdit'  => true,
         ]);
     }
 

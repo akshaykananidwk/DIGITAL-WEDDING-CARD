@@ -17,8 +17,16 @@ use App\Core\Url;
 
 $seo = $seo ?? App\Services\SeoService::make()->noindex();
 $isPreview = $isPreview ?? false;
+/*
+ * A preview comes in two kinds. The builder's live preview reloads on every
+ * keystroke, so replaying the envelope opening there would be unbearable. A
+ * showcase preview - the full-screen one a visitor opens from the gallery, or
+ * an administrator opens from the template list - is meant to be the real
+ * thing, animation included.
+ */
+$liveEdit = $liveEdit ?? $isPreview;
 $isOwnerView = $isOwnerView ?? false;
-$skipAnimation = (bool) $c->setting('skip_animation', false) || $isPreview;
+$skipAnimation = (bool) $c->setting('skip_animation', false) || $liveEdit;
 $language = (string) ($c->invitation()['language'] ?? Lang::locale());
 $htmlLang = match ($language) {
     'gu' => 'gu-IN',

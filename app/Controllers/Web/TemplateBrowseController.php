@@ -106,6 +106,8 @@ final class TemplateBrowseController extends Controller
             'scripts'  => $engine->scripts($context),
             'seo'      => SeoService::forTemplate($template)->noindex(),
             'isPreview' => true,
+            // A showcase: show the opening animation as a guest would see it.
+            'liveEdit'  => false,
         ]);
     }
 
