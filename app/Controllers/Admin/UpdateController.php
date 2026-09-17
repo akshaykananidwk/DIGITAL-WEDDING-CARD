@@ -63,6 +63,24 @@ final class UpdateController extends AdminController
         return $this->respond($request, (bool) $verification['ok'], $message, 'admin/system/update');
     }
 
+    /**
+     * Remove the stored access token.
+     *
+     * The counterpart to saving one: a token that is no longer needed (the
+     * repository went public, or the token is being rotated) should be
+     * removable from the screen, not only by editing the database.
+     */
+    public function clearToken(Request $request): Response
+    {
+        $this->github->clearToken(Auth::id());
+        return $this->respond(
+            $request,
+            true,
+            'Access token removed. A private repository cannot be reached until a new one is saved.',
+            'admin/system/update'
+        );
+    }
+
     public function verify(Request $request): Response
     {
         $result = $this->github->verify();

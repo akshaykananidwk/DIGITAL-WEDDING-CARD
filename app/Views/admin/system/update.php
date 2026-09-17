@@ -247,6 +247,16 @@ $commit = is_array($lastCheck) ? ($lastCheck['commit'] ?? null) : null;
                     Save and verify
                 </button>
             </form>
+
+            <?php if (!empty($state['has_token'])): ?>
+                <form class="mt-2" method="post" action="<?= e(url('admin/system/update/clear-token')) ?>">
+                    <?= csrf_field() ?>
+                    <button class="btn btn-sm btn-outline-danger w-100" type="submit"
+                            data-sk-confirm="Remove the stored access token? A private repository cannot be reached until a new one is saved.">
+                        Remove stored token
+                    </button>
+                </form>
+            <?php endif; ?>
         </section>
 
         <section class="sk-panel mb-4">

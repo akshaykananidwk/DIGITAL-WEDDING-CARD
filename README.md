@@ -41,6 +41,11 @@ renderers) crossed with a `theme` (design tokens as JSON) and a set of
 validated. Adding a design is inserting a row; adding a *field* to a design is
 inserting a row. Nothing about an individual invitation is hardcoded anywhere.
 
+A bespoke card that needs more than its layout offers can instead be built from
+`template_components` in the admin panel: blocks with `{{field_key}}` placeholders,
+grouped into pages, which take over the rendering while any of them is visible and
+hand it back to the layout when they are gone.
+
 That is why the built-in generator can produce thousands of distinct, sensible
 templates — layouts × 16 palettes × font pairings × 68 occasions — and why the
 catalogue stays fast at that size: **1,000 templates generate in 2 seconds, and page 7
@@ -82,7 +87,7 @@ php bin/console pdf:test
 ## Tests
 
 ```bash
-php tests/run.php                  # 500 checks, 9 cases, no dependencies
+php tests/run.php                  # 515 checks, 9 cases, no dependencies
 php tests/run.php Security         # one case
 php tests/run.php --json           # machine readable
 ```

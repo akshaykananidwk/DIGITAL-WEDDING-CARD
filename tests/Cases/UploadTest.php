@@ -32,6 +32,7 @@ final class UploadTest extends TestCase
             $this->safeNaming();
             $this->uploadDirectoryCannotExecutePhp();
             $this->inUseProtection();
+            $this->libraryDeduplication();
         } finally {
             $this->cleanUp();
         }
@@ -262,6 +263,57 @@ final class UploadTest extends TestCase
         $this->assertFalse('Media: the file is gone once confirmed', is_file(UPLOAD_PATH . '/' . $stored['path']));
 
         $db->delete('invitation_photos', ['id' => $photoId]);
+    }
+
+    /** The same file uploaded twice is one library entry, not two. */
+    private function libraryDeduplication(): void
+    {
+        if (!function_exists('imagecreatetruecolor')) {
+            $this->pass('Media: skipped de-duplication, GD is not available');
+            return;
+        }
+
+        $bytes = $this->pngBytes(48, 48);
+        $first = $this->media->storeToLibrary($this->upload('twice.png', $bytes), null, 'suite', true);
+        $this->written[] = UPLOAD_PATH . '/' . $first['path'];
+        $second = $this->media->storeToLibrary($this->upload('twice-again.png', $bytes), null, 'suite', true);
+
+        $this->assertSame(
+            'Media: an identical library upload reuses the entry',
+            (int) $first['id'],
+            (int) $second['id']
+        );
+        $this->assertTrue(
+            'Media: the first copy is still on disk',
+            is_file(UPLOAD_PATH . '/' . $first['path'])
+        );
+        $this->assertSame(
+            'Media: only one row exists for that content',
+            1,
+            count((new MediaRepository())->db()->select(
+                'SELECT id FROM ' . (new MediaRepository())->db()->wrap(
+                    (new MediaRepository())->db()->table('media')
+                ) . ' WHERE content_hash = :h AND deleted_at IS NULL',
+                ['h' => hash('sha256', file_get_contents(UPLOAD_PATH . '/' . $first['path']) ?: '')]
+            ))
+        );
+
+        // A different image is still stored separately.
+        $other = $this->media->storeToLibrary(
+            $this->upload('different.png', $this->pngBytes(50, 50)),
+            null,
+            'suite',
+            true
+        );
+        $this->written[] = UPLOAD_PATH . '/' . $other['path'];
+        $this->assertFalse(
+            'Media: a different file gets its own entry',
+            (int) $other['id'] === (int) $first['id']
+        );
+
+        foreach ([$first, $other] as $row) {
+            $this->media->deleteMedia((int) $row['id'], true);
+        }
     }
 
     private function cleanUp(): void

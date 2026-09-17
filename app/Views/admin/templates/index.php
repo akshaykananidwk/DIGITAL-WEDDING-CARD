@@ -113,6 +113,10 @@ $view->extend('layouts.admin');
                                 <i class="bi bi-input-cursor-text" aria-hidden="true"></i>
                             </a>
                             <a class="btn btn-sm btn-outline-secondary"
+                               href="<?= e(url('admin/templates/' . $template['id'] . '/components')) ?>" aria-label="Components">
+                                <i class="bi bi-layout-text-window" aria-hidden="true"></i>
+                            </a>
+                            <a class="btn btn-sm btn-outline-secondary"
                                href="<?= e(url('admin/templates/' . $template['id'] . '/edit')) ?>" aria-label="Edit">
                                 <i class="bi bi-pencil" aria-hidden="true"></i>
                             </a>

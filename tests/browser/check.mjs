@@ -33,7 +33,8 @@ const AUTH_PAGES = [
   '/dashboard', '/invitations', '/analytics', '/profile', '/notifications',
   '/create', '/create/templates', '/builder/1', '/builder/1?step=4', '/builder/1?step=5',
   '/builder/1?step=7', '/builder/1/share', '/invitations/1/rsvp', '/invitations/1/analytics',
-  '/admin', '/admin/templates', '/admin/templates/1/fields', '/admin/invitations',
+  '/admin', '/admin/templates', '/admin/templates/1/fields', '/admin/templates/1/components',
+  '/admin/invitations',
   '/admin/media', '/admin/analytics', '/admin/settings/security',
   '/admin/system', '/admin/system/health', '/admin/system/update', '/admin/system/cron',
 ];

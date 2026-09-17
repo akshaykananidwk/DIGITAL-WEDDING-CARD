@@ -12,6 +12,7 @@ use App\Repositories\InvitationDataRepository;
 use App\Repositories\InvitationMusicRepository;
 use App\Repositories\InvitationPhotoRepository;
 use App\Repositories\InvitationSectionRepository;
+use App\Repositories\TemplateComponentRepository;
 use App\Repositories\TemplateFieldRepository;
 use App\Repositories\TemplateRepository;
 
@@ -53,11 +54,6 @@ final class TemplateEngine
         'celebration-pop'  => 'Celebration Pop',
         'business-launch'  => 'Business Launch',
     ];
-
-    public static function layoutOptions(): array
-    {
-        return self::LAYOUTS;
-    }
 
     public static function layoutExists(string $key): bool
     {
@@ -128,6 +124,12 @@ final class TemplateEngine
         $customHtml = (string) ($template['custom_html'] ?? '');
         if (trim($customHtml) !== '') {
             return $this->renderCustomHtml($customHtml, $context);
+        }
+
+        // Then a template built from components in the admin panel.
+        $components = is_array($template['components'] ?? null) ? $template['components'] : [];
+        if ($this->hasVisibleComponents($components)) {
+            return $this->renderComponentPages((int) $template['id'], $context);
         }
 
         $layout = (string) ($template['layout_key'] ?? 'classic-kankotri');
@@ -364,6 +366,50 @@ final class TemplateEngine
         $css = (string) preg_replace('/expression\s*\(|javascript\s*:|behaviour\s*:|behavior\s*:|@import/i', '', $css);
         $css = str_replace(['</style', '<script'], '', $css);
         return $css;
+    }
+
+    /** @param array<int,array<string,mixed>> $components */
+    private function hasVisibleComponents(array $components): bool
+    {
+        foreach ($components as $component) {
+            if ((int) ($component['is_visible'] ?? 1) === 1 && trim((string) ($component['content'] ?? '')) !== '') {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Render a component-built template, one wrapper per page.
+     *
+     * A single page is an ordinary invitation page. Several pages reuse the
+     * book markup, so the same page-turning script and the same no-JavaScript
+     * fallback (all pages stacked) apply as for the hand-written layouts.
+     */
+    public function renderComponentPages(int $templateId, TemplateContext $context): string
+    {
+        $pages = (new TemplateComponentRepository())->byPage($templateId);
+        $rendered = [];
+        foreach ($pages as $components) {
+            $html = $this->renderComponents($components, $context);
+            if (trim($html) !== '') {
+                $rendered[] = $html;
+            }
+        }
+
+        if ($rendered === []) {
+            return '';
+        }
+        if (count($rendered) === 1) {
+            return '<div class="inv-page"><article class="inv-card">' . $rendered[0] . '</article></div>';
+        }
+
+        $out = '<div class="inv-page"><div class="inv-book" data-inv-book>';
+        foreach ($rendered as $index => $html) {
+            $out .= '<section class="inv-book__page' . ($index === 0 ? ' is-active' : '') . '">'
+                . '<article class="inv-card">' . $html . '</article></section>';
+        }
+        return $out . '</div></div>';
     }
 
     /**

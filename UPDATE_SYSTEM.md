@@ -23,7 +23,9 @@ exercised by `tests/Cases/SystemTest.php`.
 
 The token is encrypted with AES-256-GCM using the application key, which lives outside
 the web root. It is displayed as `ghp_•••••••wxyz`, never sent to the browser in full,
-and redacted from logs. Removing it is one click.
+and redacted from logs. **Remove stored token** on the same screen clears it, with an
+audit entry; the repository and branch stay as they are, so a repository that has since
+become public keeps working.
 
 ---
 

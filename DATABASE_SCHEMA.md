@@ -158,7 +158,12 @@ social, music), `section` (main, people, schedule, venue, message, contact, medi
 ### `template_components`, `template_assets`
 Optional per-template building blocks (`page`, `section`, `heading`, `names`,
 `divider`, `image`, …) and attached files. Present for bespoke templates that need
-more than the layout's own structure.
+more than the layout's own structure. Managed at
+`/admin/templates/{id}/components`. `content` may carry `{{field_key}}`
+placeholders and is sanitised on save and again on render; `page_number` groups
+components into pages, and more than one page renders as a page-turning card.
+While a template has a visible component with content, it renders from these
+blocks instead of its `layout_key`.
 
 ---
 

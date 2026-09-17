@@ -203,6 +203,11 @@ $router->group('admin', ['installed', 'admin'], static function ($router): void 
     $router->post('/templates/{id:\d+}/fields/reorder', [Admin\TemplateFieldController::class, 'reorder'], ['csrf', 'can:templates.fields']);
     $router->delete('/templates/{id:\d+}/fields/{fieldId:\d+}', [Admin\TemplateFieldController::class, 'destroy'], ['csrf', 'can:templates.fields']);
     $router->post('/templates/{id:\d+}/fields/preset', [Admin\TemplateFieldController::class, 'applyPreset'], ['csrf', 'can:templates.fields']);
+    $router->get('/templates/{id:\d+}/components', [Admin\TemplateComponentController::class, 'index'], ['can:templates.fields']);
+    $router->post('/templates/{id:\d+}/components', [Admin\TemplateComponentController::class, 'store'], ['csrf', 'can:templates.fields']);
+    $router->post('/templates/{id:\d+}/components/reorder', [Admin\TemplateComponentController::class, 'reorder'], ['csrf', 'can:templates.fields']);
+    $router->post('/templates/{id:\d+}/components/{componentId:\d+}', [Admin\TemplateComponentController::class, 'update'], ['csrf', 'can:templates.fields']);
+    $router->delete('/templates/{id:\d+}/components/{componentId:\d+}', [Admin\TemplateComponentController::class, 'destroy'], ['csrf', 'can:templates.fields']);
     $router->get('/templates-generate', [Admin\TemplateController::class, 'generator'], ['can:templates.generate'], 'admin.templates.generate');
     $router->post('/templates-generate', [Admin\TemplateController::class, 'generate'], ['csrf', 'can:templates.generate']);
     $router->post('/templates-generate/remove', [Admin\TemplateController::class, 'removeGenerated'], ['csrf', 'can:templates.delete']);
@@ -269,6 +274,7 @@ $router->group('admin', ['installed', 'admin'], static function ($router): void 
 
     $router->get('/system/update', [Admin\UpdateController::class, 'index'], ['can:updates.view'], 'admin.update');
     $router->post('/system/update/source', [Admin\UpdateController::class, 'saveSource'], ['csrf', 'can:updates.apply']);
+    $router->post('/system/update/clear-token', [Admin\UpdateController::class, 'clearToken'], ['csrf', 'can:updates.apply']);
     $router->post('/system/update/verify', [Admin\UpdateController::class, 'verify'], ['csrf', 'can:updates.view']);
     $router->post('/system/update/check', [Admin\UpdateController::class, 'check'], ['csrf', 'can:updates.view']);
     $router->post('/system/update/apply', [Admin\UpdateController::class, 'apply'], ['csrf', 'can:updates.apply']);

@@ -243,6 +243,21 @@ final class MediaService
         $stored = $this->storeImage($file, $folder);
         $hash = hash_file('sha256', UPLOAD_PATH . '/' . $stored['path']) ?: null;
 
+        // The same file uploaded twice is one library entry: the content hash
+        // is what the column is for. The freshly written copy is removed
+        // again so a duplicate upload costs no disk.
+        if ($hash !== null) {
+            $existing = $this->media->findByHash($hash, $isLibrary ? null : $userId);
+            if ($existing !== null && (int) $existing['is_library'] === ($isLibrary ? 1 : 0)) {
+                $this->deleteFiles(array_filter([
+                    (string) $stored['path'],
+                    (string) ($stored['thumb_path'] ?? ''),
+                    (string) ($stored['webp_path'] ?? ''),
+                ]));
+                return $existing;
+            }
+        }
+
         $id = $this->media->create([
             'user_id'       => $userId,
             'folder'        => $this->safeFolder($folder),

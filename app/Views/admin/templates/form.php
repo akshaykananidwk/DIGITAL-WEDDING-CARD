@@ -298,6 +298,9 @@ $flag = static fn (string $key, bool $default = false): bool
                     <a class="btn btn-outline-secondary" href="<?= e(url('admin/templates/' . $template['id'] . '/fields')) ?>">
                         Fields
                     </a>
+                    <a class="btn btn-outline-secondary" href="<?= e(url('admin/templates/' . $template['id'] . '/components')) ?>">
+                        Components
+                    </a>
                 <?php endif; ?>
             </div>
         </div>

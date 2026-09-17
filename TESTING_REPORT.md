@@ -22,14 +22,14 @@ php bin/console health       # the 23 runtime checks
 ■ Security                                    44 checks    939 ms
 ■ Two-step sign-in                            35 checks  6 544 ms
 ■ Authentication and authorisation            29 checks  1 065 ms
-■ Templates and the engine                    79 checks  2 810 ms
+■ Templates and the engine                    90 checks  2 979 ms
 ■ Invitations, slugs and RSVP                 57 checks    313 ms
 ■ PDF, QR, calendar and sharing               60 checks    170 ms
-■ Uploads and the media library               29 checks    115 ms
+■ Uploads and the media library               33 checks    173 ms
 ■ AI generator and recommender                38 checks     13 ms
 ■ System, installer, backups and updates     129 checks  4 616 ms
 ──────────────────────────────────────────────────────────────────
-All 500 checks passed in 17.6 s across 9 cases
+All 515 checks passed in 17.8 s across 9 cases
 ```
 
 The runner has no dependencies — no Composer, no PHPUnit, no Node — so it runs on the
@@ -78,7 +78,7 @@ status:
 | Unknown path | 1 | 404 |
 | `/install` after install | 1 | 403 |
 | Signed-in user area (dashboard, builder steps 3–8, RSVP, analytics, exports) | 19 | 200 |
-| Admin panel (41 screens: users, roles, taxonomy, templates, fields, generator, invitations, media, fonts, pages, analytics, audit, all 11 settings groups, flags, AI, AI log, system, health, logs, cron, backups, updates, update history) | 41 | 200 |
+| Admin panel (42 screens: users, roles, taxonomy, templates, fields, components, generator, invitations, media, fonts, pages, analytics, audit, all 11 settings groups, flags, AI, AI log, system, health, logs, cron, backups, updates, update history) | 42 | 200 |
 | **Total** | **95** | **95 as expected, 0 unexpected, 0 errors logged** |
 
 Static assets, the manifest and the service worker were fetched and returned with the
@@ -114,6 +114,8 @@ produced file, not just by a 200 response.
 | Short link | `/i/PWZLQU` → **301** to the full URL, QR scan counted |
 | Short link reissued | `POST /builder/1/short-code` replaced that code with `/i/VWE6HH` (**301**), after which the earlier `/i/PWZLQU` returned **404** — a short link that has travelled too far can be revoked |
 | Secondary roles | A role added in `user_roles` granted its permissions on the next sign-in without conferring super admin, and removing the row took them away again |
+| Template components | Two components added from `/admin/templates/1/components` took over the rendering: placeholders resolved, styles applied, `<script>` and `onclick` stripped on save *and* on render, a hidden component left out, two pages rendered as a page-turning card; deleting them handed rendering back to the layout |
+| GitHub token removal | Saving a token showed it masked (`ghp_••••••••en00`) with a **Remove stored token** control; removing it cleared the setting, wrote an audit entry, and put no token text in any log |
 | RSVP | Guest submission stored, summary counts and guest total correct, a repeat from the same visitor updates rather than duplicates, CSV export contains the guest and no IP address |
 | Share tracking | `POST /invite/{slug}/share` recorded per channel; counters incremented |
 | Analytics | Views, unique views, shares and downloads recorded; 30-day series; device, browser, referrer and channel breakdowns; CSV export |

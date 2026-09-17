@@ -36,6 +36,7 @@ final class TemplateTest extends TestCase
         $this->fields();
         $this->engine();
         $this->placeholders();
+        $this->components();
         $this->scalability();
     }
 
@@ -182,6 +183,97 @@ final class TemplateTest extends TestCase
             $engine->context(array_merge($row, ['custom_html' => null]), ['groom_name' => '<b>x</b>'], true)
         );
         $this->assertNotContains('Engine: a placeholder value cannot inject markup', '<b>x</b>', $resolved);
+    }
+
+    /**
+     * A template built from components renders from those blocks instead of
+     * its layout, and goes back to the layout when they are gone.
+     */
+    private function components(): void
+    {
+        $db = Database::instance();
+        $invitation = $db->first(
+            'SELECT * FROM ' . $db->wrap($db->table('invitations')) . ' WHERE deleted_at IS NULL LIMIT 1'
+        );
+        if ($invitation === null) {
+            $this->pass('Components: skipped, no invitation present');
+            return;
+        }
+
+        $invitations = new \App\Repositories\InvitationRepository();
+        $templates = new TemplateRepository();
+        $components = new \App\Repositories\TemplateComponentRepository();
+        $engine = new TemplateEngine();
+        $templateId = (int) $invitation['template_id'];
+
+        $made = [];
+        try {
+            $made[] = $components->create([
+                'template_id'   => $templateId,
+                'component_key' => 'suite_heading',
+                'name'          => 'Suite heading',
+                'type'          => 'heading',
+                'content'       => '<p class="suite-heading">{{groom_name}}</p>',
+                'styles'        => ['text-align' => 'center'],
+                'page_number'   => 1,
+                'sort_order'    => 10,
+                'is_visible'    => 1,
+            ]);
+            $made[] = $components->create([
+                'template_id'   => $templateId,
+                'component_key' => 'suite_second_page',
+                'name'          => 'Suite second page',
+                'type'          => 'section',
+                'content'       => '<p class="suite-second">{{venue_name}}</p>',
+                'page_number'   => 2,
+                'sort_order'    => 10,
+                'is_visible'    => 1,
+            ]);
+            $made[] = $components->create([
+                'template_id'   => $templateId,
+                'component_key' => 'suite_hidden',
+                'name'          => 'Suite hidden',
+                'type'          => 'text',
+                'content'       => '<p class="suite-hidden">hidden</p>',
+                'page_number'   => 3,
+                'sort_order'    => 10,
+                'is_visible'    => 0,
+            ]);
+            $templates->flushDefinition($templateId);
+
+            $row = (array) $invitations->find((int) $invitation['id']);
+            $html = $engine->render($row, null, true);
+
+            $this->assertContains('Components: a component is rendered', 'inv-component--heading', $html);
+            $this->assertContains('Components: its placeholder is resolved', 'suite-heading', $html);
+            $this->assertNotContains('Components: no placeholder survives', '{{groom_name}}', $html);
+            $this->assertContains('Components: its styles reach the wrapper', 'text-align:center', $html);
+            $this->assertNotContains('Components: a hidden component is left out', 'suite-hidden', $html);
+            $this->assertContains('Components: two pages become a page-turning card', 'inv-book__page', $html);
+            $this->assertSame(
+                'Components: only the visible pages are rendered',
+                2,
+                substr_count($html, 'inv-book__page')
+            );
+
+            // Markup the sanitiser must not pass through, even from an admin.
+            $components->update($made[0], [
+                'content' => '<p onclick="x()">{{groom_name}}</p><script>alert(1)</script>',
+            ]);
+            $templates->flushDefinition($templateId);
+            $html = $engine->render((array) $invitations->find((int) $invitation['id']), null, true);
+            $this->assertNotContains('Components: a script tag is stripped on render', '<script', $html);
+            $this->assertNotContains('Components: an inline handler is stripped on render', 'onclick', $html);
+        } finally {
+            foreach ($made as $id) {
+                $components->forceDelete((int) $id);
+            }
+            $templates->flushDefinition($templateId);
+        }
+
+        $html = $engine->render((array) $invitations->find((int) $invitation['id']), null, true);
+        $this->assertNotContains('Components: removing them restores the layout', 'inv-component--', $html);
+        $this->assertContains('Components: the layout renders again', 'inv-', $html);
     }
 
     private function scalability(): void

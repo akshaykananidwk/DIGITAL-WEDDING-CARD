@@ -268,15 +268,18 @@ final class CronService
     private function recordHealth(): string
     {
         $result = (new HealthService())->run('cron');
-        if ($result['status'] === HealthService::CRITICAL) {
+        $status = (string) $result['status'];
+        if ($status === HealthService::CRITICAL) {
             (new NotificationRepository())->notifyAdmins(
-                'System health is critical',
+                HealthService::indicator($status) . ' System health is critical',
                 'The scheduled health check found ' . $result['summary'][HealthService::CRITICAL] . ' critical issue(s).',
                 'error',
                 Url::to('admin/system/health')
             );
         }
-        return 'Health snapshot recorded: ' . $result['status'] . '.';
+        // The cron log is read as plain text - in the runs table, in the CLI
+        // and in a mailed report - so the traffic light goes in as a glyph.
+        return 'Health snapshot recorded: ' . HealthService::indicator($status) . ' ' . $status . '.';
     }
 
     private function pruneCache(): string
