@@ -106,6 +106,17 @@ final class ExportTest extends TestCase
             (float) strlen($screen),
             (float) strlen($print)
         );
+
+        // Separate codes for the venue signboard and the RSVP desk.
+        $context = (new \App\Services\TemplateEngine())->context($invitation);
+        if ($context->mapsUrl() !== '') {
+            $venue = $service->forVenue($context->mapsUrl());
+            $this->assertSame('QR service: a venue QR is produced', "\x89PNG\r\n\x1a\n", substr($venue, 0, 8));
+            $this->assertFalse('QR service: it is not the invitation QR', $venue === $png);
+        }
+        $rsvp = $service->forRsvp($invitation);
+        $this->assertSame('QR service: an RSVP QR is produced', "\x89PNG\r\n\x1a\n", substr($rsvp, 0, 8));
+        $this->assertFalse('QR service: the RSVP QR differs from the card QR', $rsvp === $png);
     }
 
     private function pdfWriter(): void

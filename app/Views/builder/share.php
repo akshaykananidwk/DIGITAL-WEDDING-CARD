@@ -92,11 +92,28 @@ $isPublished = (string) $invitation['status'] === 'published';
                     <a class="btn btn-sm btn-outline-secondary" href="<?= e((string) $share['qr_png'] . '?download=1') ?>">
                         PNG
                     </a>
+                    <a class="btn btn-sm btn-outline-secondary" href="<?= e((string) $share['qr_png'] . '?print=1&download=1') ?>">
+                        <?= e(__('builder.qr_print')) ?>
+                    </a>
                     <a class="btn btn-sm btn-outline-secondary" href="<?= e((string) $share['qr_svg']) ?>">
                         SVG
                     </a>
                     <a class="btn btn-sm btn-outline-secondary" href="<?= e((string) $share['pdf']) ?>">
                         <i class="bi bi-file-earmark-pdf me-1" aria-hidden="true"></i>PDF
+                    </a>
+                </div>
+
+                <hr>
+
+                <p class="form-text mt-0"><?= e(__('builder.qr_extras_hint')) ?></p>
+                <div class="d-flex flex-wrap justify-content-center gap-2">
+                    <a class="btn btn-sm btn-outline-secondary"
+                       href="<?= e(url('invite/' . $invitation['slug'] . '/qr-venue.png', ['download' => 1])) ?>">
+                        <i class="bi bi-geo-alt me-1" aria-hidden="true"></i><?= e(__('builder.qr_venue')) ?>
+                    </a>
+                    <a class="btn btn-sm btn-outline-secondary"
+                       href="<?= e(url('invite/' . $invitation['slug'] . '/qr-rsvp.png', ['download' => 1])) ?>">
+                        <i class="bi bi-clipboard-check me-1" aria-hidden="true"></i><?= e(__('builder.qr_rsvp')) ?>
                     </a>
                 </div>
             </section>

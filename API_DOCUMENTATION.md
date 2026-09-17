@@ -246,6 +246,19 @@ the response says which ranking you got (`rules` or `ai`), and `reason` explains
 
 ---
 
+## Invitation downloads
+
+Public, no authentication, for a published invitation:
+
+| Endpoint | Returns |
+|---|---|
+| `GET /invite/{slug}/pdf` | A4 by default; `?variant=mobile` or `?variant=card`, `?inline=1` to view rather than download |
+| `GET /invite/{slug}/qr.png` | The invitation QR; `?print=1` for print size, `?scale=4..20`, `?download=1` |
+| `GET /invite/{slug}/qr.svg` | The same code as vector |
+| `GET /invite/{slug}/qr-venue.png` | A QR that opens the venue on a map — for the entrance or a signboard |
+| `GET /invite/{slug}/qr-rsvp.png` | A QR that opens the RSVP form — for the reception desk |
+| `GET /invite/{slug}/calendar.ics` | An RFC 5545 event in Asia/Kolkata |
+
 ## Cron
 
 ### `GET /cron/run?token=…`

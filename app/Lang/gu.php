@@ -157,6 +157,10 @@ return [
         'full_link' => 'પૂર્ણ લિંક',
         'short_link' => 'ટૂંકી લિંક',
         'whatsapp_message' => 'મોકલવા તૈયાર સંદેશ',
+        'qr_print' => 'પ્રિન્ટ માપ',
+        'qr_venue' => 'સ્થળનો QR',
+        'qr_rsvp' => 'RSVP ટેબલનો QR',
+        'qr_extras_hint' => 'પ્રસંગના દિવસ માટે બે વધુ કોડ: એક પ્રવેશ પર જે રસ્તો બતાવે, એક RSVP ટેબલ માટે.',
     ],
 
     'invite' => [

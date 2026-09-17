@@ -162,6 +162,10 @@ return [
         'full_link' => 'Full link',
         'short_link' => 'Short link',
         'whatsapp_message' => 'Ready-to-send message',
+        'qr_print' => 'Print size',
+        'qr_venue' => 'Venue directions QR',
+        'qr_rsvp' => 'RSVP desk QR',
+        'qr_extras_hint' => 'Two more codes for the day itself: one for the entrance that opens directions, one for the RSVP desk.',
     ],
 
     'invite' => [

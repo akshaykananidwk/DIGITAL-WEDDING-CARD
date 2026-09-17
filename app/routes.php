@@ -65,6 +65,9 @@ $router->group('', ['installed', 'maintenance'], static function ($router): void
     $router->get('/invite/{slug:[A-Za-z0-9\-]+}/pdf', [Web\InvitationExportController::class, 'pdf'], ['throttle:pdf,30,600'], 'invite.pdf');
     $router->get('/invite/{slug:[A-Za-z0-9\-]+}/qr.png', [Web\InvitationExportController::class, 'qrPng'], [], 'invite.qr.png');
     $router->get('/invite/{slug:[A-Za-z0-9\-]+}/qr.svg', [Web\InvitationExportController::class, 'qrSvg'], [], 'invite.qr.svg');
+    // Separate codes for the venue signboard and the RSVP desk.
+    $router->get('/invite/{slug:[A-Za-z0-9\-]+}/qr-venue.png', [Web\InvitationExportController::class, 'qrVenue'], [], 'invite.qr.venue');
+    $router->get('/invite/{slug:[A-Za-z0-9\-]+}/qr-rsvp.png', [Web\InvitationExportController::class, 'qrRsvp'], [], 'invite.qr.rsvp');
     $router->get('/invite/{slug:[A-Za-z0-9\-]+}/calendar.ics', [Web\InvitationExportController::class, 'ics'], [], 'invite.ics');
     $router->post(
         '/invite/{slug:[A-Za-z0-9\-]+}/rsvp',

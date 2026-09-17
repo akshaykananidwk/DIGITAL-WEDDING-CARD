@@ -16,6 +16,7 @@ use App\Services\CalendarService;
 use App\Services\FeatureFlagService;
 use App\Services\PdfService;
 use App\Services\QrService;
+use App\Services\TemplateEngine;
 
 /** PDF, QR and calendar downloads for a public invitation. */
 final class InvitationExportController extends Controller
@@ -72,6 +73,44 @@ final class InvitationExportController extends Controller
             return Response::download($bytes, $invitation['slug'] . '-qr.png', 'image/png');
         }
 
+        return Response::make($bytes, 200, ['Content-Type' => 'image/png'])->cache(86400);
+    }
+
+    /**
+     * A QR that opens the venue on a map, for a printed card or a signboard.
+     *
+     * Separate from the invitation QR on purpose: a guest standing outside
+     * wants directions, not the invitation they have already read.
+     */
+    public function qrVenue(Request $request): Response
+    {
+        $invitation = $this->resolve($request);
+        $context = (new TemplateEngine())->context($invitation);
+        $mapsUrl = $context->mapsUrl();
+
+        if ($mapsUrl === '') {
+            throw HttpException::notFound('This invitation has no venue link yet.');
+        }
+
+        $bytes = (new QrService())->forVenue($mapsUrl, max(4, min(20, $request->int('scale', 10))));
+
+        if ($request->query('download') === '1') {
+            $this->analytics->recordDownload($invitation, 'qr_png');
+            return Response::download($bytes, $invitation['slug'] . '-venue-qr.png', 'image/png');
+        }
+        return Response::make($bytes, 200, ['Content-Type' => 'image/png'])->cache(86400);
+    }
+
+    /** A QR that opens the RSVP form, for the reception desk. */
+    public function qrRsvp(Request $request): Response
+    {
+        $invitation = $this->resolve($request);
+        $bytes = (new QrService())->forRsvp($invitation, max(4, min(20, $request->int('scale', 10))));
+
+        if ($request->query('download') === '1') {
+            $this->analytics->recordDownload($invitation, 'qr_png');
+            return Response::download($bytes, $invitation['slug'] . '-rsvp-qr.png', 'image/png');
+        }
         return Response::make($bytes, 200, ['Content-Type' => 'image/png'])->cache(86400);
     }
 

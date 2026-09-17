@@ -29,7 +29,7 @@ php bin/console health       # the 23 runtime checks
 ■ AI generator and recommender                38 checks     13 ms
 ■ System, installer, backups and updates     129 checks  4 616 ms
 ──────────────────────────────────────────────────────────────────
-All 488 checks passed in 17.0 s across 9 cases
+All 492 checks passed in 17.5 s across 9 cases
 ```
 
 The runner has no dependencies — no Composer, no PHPUnit, no Node — so it runs on the
@@ -116,7 +116,7 @@ produced file, not just by a 200 response.
 | Share tracking | `POST /invite/{slug}/share` recorded per channel; counters incremented |
 | Analytics | Views, unique views, shares and downloads recorded; 30-day series; device, browser, referrer and channel breakdowns; CSV export |
 | PDF | A4 and mobile generated; `qpdf --check` reports a valid 1-page PDF; `pdftotext` extracts the Gujarati text (`॥ શુભ લગ્ન ॥`, `સંગ`, `પુત્ર`) and the Latin names |
-| QR | PNG and SVG; `zbarimg` decodes the PNG to `http://localhost:8080/i/PWZLQU`; print size larger than screen size |
+| QR | PNG and SVG; `zbarimg` decodes the PNG to `http://localhost:8080/i/PWZLQU`; print size larger than screen size; the venue code decodes to the Google Maps link and the RSVP code to the form |
 | Calendar | `.ics` valid, `Asia/Kolkata` VTIMEZONE, CRLF line endings, no line over 75 octets |
 | Duplicate | New row, own slug and short code, content copied, status draft |
 | Delete / purge | Soft delete hides it from the owner's list and keeps the row; purge removes the row and its content |
