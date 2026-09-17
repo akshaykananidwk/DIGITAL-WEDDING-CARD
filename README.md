@@ -82,7 +82,7 @@ php bin/console pdf:test
 ## Tests
 
 ```bash
-php tests/run.php                  # 450 checks, 8 cases, no dependencies
+php tests/run.php                  # 488 checks, 9 cases, no dependencies
 php tests/run.php Security         # one case
 php tests/run.php --json           # machine readable
 ```
@@ -101,7 +101,7 @@ What was actually tested, measured and fixed: **[TESTING_REPORT.md](TESTING_REPO
 | [DEPLOYMENT_GUIDE.md](DEPLOYMENT_GUIDE.md) | Install, configure, harden, tune, troubleshoot |
 | [UPDATE_SYSTEM.md](UPDATE_SYSTEM.md) | One-click GitHub updates, and how rollback works |
 | [SECURITY.md](SECURITY.md) | Threat model and every control, with where it lives |
-| [DATABASE_SCHEMA.md](DATABASE_SCHEMA.md) | All 39 tables, their columns and their indexes |
+| [DATABASE_SCHEMA.md](DATABASE_SCHEMA.md) | All 40 tables, their columns and their indexes |
 | [API_DOCUMENTATION.md](API_DOCUMENTATION.md) | The JSON API |
 | [TESTING_REPORT.md](TESTING_REPORT.md) | Results, measurements, defects found, limitations |
 | [docs/PDF.md](docs/PDF.md) | The PDF writer, and honestly what it cannot do |

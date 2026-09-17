@@ -34,6 +34,7 @@ final class ProfileController extends Controller
         return $this->view('dashboard.profile', [
             'seo'      => SeoService::make()->title(Lang::get('nav.profile'))->noindex(),
             'user'     => $user,
+            'twoFactorAvailable' => (new \App\Services\OtpService())->isAvailable(),
             'storage'  => (new MediaRepository())->storageStats((int) Auth::id()),
             'limits'   => (new InvitationService())->planLimits((array) $user),
             'tokens'   => (new ApiTokenRepository())->forUser((int) Auth::id()),
@@ -69,6 +70,10 @@ final class ProfileController extends Controller
             'phone' => isset($data['phone']) ? Str::phone((string) $data['phone']) : null,
             'city'  => $data['city'] ?? null,
         ];
+        $otp = new \App\Services\OtpService();
+        if ($otp->isAvailable()) {
+            $update['two_factor_enabled'] = $request->bool('two_factor_enabled') ? 1 : 0;
+        }
         if (isset($data['locale'])) {
             $update['locale'] = (string) $data['locale'];
             Lang::setLocale((string) $data['locale']);

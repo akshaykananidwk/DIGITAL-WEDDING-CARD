@@ -86,6 +86,14 @@ A missing or wrong token returns **419** and the request is not executed. Cookie
   validator is stored hashed. A stolen database cannot be replayed as a login.
 - Password reset tokens are single-use, expire in 60 minutes, and are stored hashed.
   Requesting a reset for an unknown address returns the same response as a known one.
+- **A second factor** is available per user (**Profile → Two-step sign-in**): a
+  six-digit code emailed on sign-in. A correct password alone never creates a session —
+  `Auth::attempt()` is called in credentials-only mode and the session is created after
+  the code. Only the code's hash is stored, it expires in ten minutes, it can be used
+  once, five wrong guesses burn it, the attempt counter lives on the row (so a fresh
+  session does not grant five more), and six codes an hour per account is the send
+  limit. `OtpService::deliver()` is the single place an SMS gateway would slot in;
+  email is used because a gateway means credentials this application should not assume.
 
 ## Authorisation
 

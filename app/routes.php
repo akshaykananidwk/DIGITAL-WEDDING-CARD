@@ -85,6 +85,11 @@ $router->group('', ['installed', 'maintenance'], static function ($router): void
 $router->group('', ['installed', 'maintenance', 'guest'], static function ($router): void {
     $router->get('/login', [Web\AuthController::class, 'showLogin'], [], 'login');
     $router->post('/login', [Web\AuthController::class, 'login'], ['csrf', 'throttle:login,20,600']);
+    // Second factor: reachable only with a pending login in the session.
+    $router->get('/login/verify', [Web\AuthController::class, 'showOtp'], [], 'login.verify');
+    $router->post('/login/verify', [Web\AuthController::class, 'verifyOtp'], ['csrf', 'throttle:otp,30,600']);
+    $router->post('/login/verify/resend', [Web\AuthController::class, 'resendOtp'], ['csrf', 'throttle:otp-send,6,3600']);
+
     $router->get('/register', [Web\AuthController::class, 'showRegister'], [], 'register');
     $router->post('/register', [Web\AuthController::class, 'register'], ['csrf', 'throttle:register,10,3600']);
 

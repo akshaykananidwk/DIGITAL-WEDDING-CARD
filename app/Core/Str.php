@@ -114,6 +114,29 @@ final class Str
     }
 
     /** Mask a secret for display (ghp_abc...xyz). */
+    /**
+     * Mask an email address for display: a••••y@example.com
+     *
+     * Enough for the user to recognise their own address, not enough to
+     * disclose it to someone reading over their shoulder.
+     */
+    public static function maskEmail(?string $email): string
+    {
+        $email = trim((string) $email);
+        if ($email === '' || !str_contains($email, '@')) {
+            return $email === '' ? '' : str_repeat('•', mb_strlen($email));
+        }
+
+        [$local, $domain] = explode('@', $email, 2);
+        $length = mb_strlen($local);
+        $visible = $length <= 2 ? 1 : 2;
+        $masked = mb_substr($local, 0, 1)
+            . str_repeat('•', max(1, $length - $visible))
+            . ($length > 1 ? mb_substr($local, -1) : '');
+
+        return $masked . '@' . $domain;
+    }
+
     public static function maskSecret(?string $secret, int $visible = 4): string
     {
         $secret = (string) $secret;

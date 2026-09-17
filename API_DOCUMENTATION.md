@@ -64,6 +64,10 @@ The token is shown **once**; only its hash is stored. Throttled to 20 attempts p
 10 minutes per address, and the same message is returned for a wrong password and an
 unknown account.
 
+An account with **two-step sign-in** enabled cannot obtain a token this way: the flow
+needs the emailed code, which is a browser journey (`/login/verify`). Issue a named
+token from **Profile** instead and use that.
+
 ### `POST /auth/register`
 `name`, `email`, `password`, `password_confirmation`, optional `phone`, `locale`.
 Returns the same payload as login when e-mail verification is off, otherwise a message

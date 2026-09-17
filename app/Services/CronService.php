@@ -134,6 +134,12 @@ final class CronService
             $parts[] = $sessions . ' stale session(s)';
         }
 
+        // Spent and expired one-time login codes.
+        if ($db->tableExists('auth_otp_codes')) {
+            $codes = (new \App\Repositories\OtpRepository())->purgeExpired(2);
+            $parts[] = $codes . ' old sign-in code(s)';
+        }
+
         // Expired API tokens.
         if ($db->tableExists('api_tokens')) {
             $tokens = $db->execute(

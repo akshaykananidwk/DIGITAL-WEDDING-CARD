@@ -108,6 +108,7 @@ final class SettingSeeder extends Seeder
             'watermark'          => ['Watermark', false, 'Add a small credit line to exports'],
             'custom_domain'      => ['Custom domains', false, 'Reserved for future paid plans'],
             'template_generator' => ['Template generator', true, 'Generate template variants from the admin panel'],
+            'two_factor_email'   => ['Two-step sign-in', true, 'Let users require an emailed code as well as a password'],
         ];
     }
 

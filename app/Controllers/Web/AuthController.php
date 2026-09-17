@@ -19,6 +19,7 @@ use App\Repositories\UserRepository;
 use App\Services\AuditService;
 use App\Services\FeatureFlagService;
 use App\Services\MailService;
+use App\Services\OtpService;
 use App\Services\SeoService;
 use App\Services\SettingsService;
 
@@ -50,10 +51,16 @@ final class AuthController extends Controller
             return $this->validationResponse($e, $request);
         }
 
+        $otp = new OtpService();
+
+        // With a second factor in play the password is checked first and the
+        // session is only created after the code, so a correct password alone
+        // is never a signed-in session.
         $result = Auth::attempt(
             (string) $data['email'],
             (string) $request->raw('password', ''),
-            $request->bool('remember')
+            $request->bool('remember'),
+            true
         );
 
         if (!$result['ok']) {
@@ -63,6 +70,38 @@ final class AuthController extends Controller
             $this->flash('danger', $result['message']);
             return $this->back(['email' => [$result['message']]], ['email' => $data['email']]);
         }
+
+        $user = (array) $result['user'];
+
+        if ($otp->isEnabledFor($user)) {
+            $issued = $otp->issue($user);
+            if (!$issued['ok']) {
+                if ($request->expectsJson()) {
+                    return $this->error((string) $issued['message'], 429);
+                }
+                $this->flash('danger', (string) $issued['message']);
+                return $this->back(['email' => [(string) $issued['message']]], ['email' => $data['email']]);
+            }
+
+            // Only the user id and the remember choice are held, for ten
+            // minutes, and the session id is rotated so this pending state
+            // cannot be fixed by an attacker beforehand.
+            Session::regenerate();
+            Session::set('_otp_user', (int) $user['id']);
+            Session::set('_otp_remember', $request->bool('remember'));
+            Session::set('_otp_expires', time() + (int) $issued['expires_in']);
+
+            if ($request->expectsJson()) {
+                return $this->success(
+                    ['redirect' => Url::to('login/verify'), 'two_factor' => true],
+                    (string) $issued['message']
+                );
+            }
+            $this->flash('info', (string) $issued['message']);
+            return $this->redirect('login/verify');
+        }
+
+        Auth::login($user, $request->bool('remember'));
 
         $intended = Session::pull('_intended');
         $target = is_string($intended) && $intended !== ''
@@ -75,6 +114,99 @@ final class AuthController extends Controller
 
         $this->flash('success', $result['message']);
         return $this->redirect($target);
+    }
+
+    /** The second-factor screen, reached only with a pending login. */
+    public function showOtp(Request $request): Response
+    {
+        if ($this->pendingOtpUser() === null) {
+            return $this->redirect('login');
+        }
+
+        return $this->view('auth.verify-otp', [
+            'seo'   => SeoService::make()->title('Enter your code')->noindex(),
+            'email' => Str::maskEmail((string) ($this->pendingOtpUser()['email'] ?? '')),
+        ]);
+    }
+
+    public function verifyOtp(Request $request): Response
+    {
+        $user = $this->pendingOtpUser();
+        if ($user === null) {
+            $message = 'That sign-in has expired. Please start again.';
+            return $request->expectsJson()
+                ? $this->error($message, 419)
+                : $this->redirect('login');
+        }
+
+        $result = (new OtpService())->verify($user, (string) $request->input('code', ''));
+        if (!$result['ok']) {
+            if ($request->expectsJson()) {
+                return $this->error((string) $result['message'], 422);
+            }
+            return $this->back(['code' => [(string) $result['message']]]);
+        }
+
+        $remember = (bool) Session::get('_otp_remember', false);
+        $this->clearPendingOtp();
+
+        Auth::login($user, $remember);
+        AuditService::instance()->log('auth.2fa_verified', 'user', (int) $user['id']);
+
+        $intended = Session::pull('_intended');
+        $target = is_string($intended) && $intended !== ''
+            ? $intended
+            : (Auth::isAdmin() ? '/admin' : '/dashboard');
+
+        if ($request->expectsJson()) {
+            return $this->success(['redirect' => Url::to($target)], 'Welcome back!');
+        }
+        $this->flash('success', 'Welcome back!');
+        return $this->redirect($target);
+    }
+
+    /** Send another code for the pending login. */
+    public function resendOtp(Request $request): Response
+    {
+        $user = $this->pendingOtpUser();
+        if ($user === null) {
+            return $this->redirect('login');
+        }
+
+        $issued = (new OtpService())->issue($user);
+        Session::set('_otp_expires', time() + max(60, (int) $issued['expires_in']));
+
+        if ($request->expectsJson()) {
+            return $issued['ok']
+                ? $this->success(null, (string) $issued['message'])
+                : $this->error((string) $issued['message'], 429);
+        }
+        $this->flash($issued['ok'] ? 'info' : 'danger', (string) $issued['message']);
+        return $this->redirect('login/verify');
+    }
+
+    /** The user a pending second factor belongs to, if it has not expired. */
+    private function pendingOtpUser(): ?array
+    {
+        $userId = (int) Session::get('_otp_user', 0);
+        $expires = (int) Session::get('_otp_expires', 0);
+
+        if ($userId <= 0 || $expires < time()) {
+            if ($userId > 0) {
+                $this->clearPendingOtp();
+            }
+            return null;
+        }
+
+        $user = $this->users->find($userId);
+        return is_array($user) && (string) $user['status'] === 'active' ? $user : null;
+    }
+
+    private function clearPendingOtp(): void
+    {
+        Session::forget('_otp_user');
+        Session::forget('_otp_remember');
+        Session::forget('_otp_expires');
     }
 
     public function showRegister(Request $request): Response

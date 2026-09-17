@@ -39,11 +39,18 @@ final class Auth
     }
 
     /**
-     * Verify credentials and log the user in.
+     * Check credentials, and sign the user in unless a second factor is due.
      *
+     * @param bool $credentialsOnly return the user without creating a session,
+     *                              so the caller can require an OTP first
      * @return array{ok:bool,message:string,user:array<string,mixed>|null}
      */
-    public static function attempt(string $email, string $password, bool $remember = false): array
+    public static function attempt(
+        string $email,
+        string $password,
+        bool $remember = false,
+        bool $credentialsOnly = false
+    ): array
     {
         $email = strtolower(trim($email));
         $ip = Request::clientIp();
@@ -104,6 +111,12 @@ final class Auth
 
         RateLimiter::clear('login-email', $email);
         RateLimiter::clear('login-ip', $ip);
+
+        // A second factor, where the user has one, goes between a correct
+        // password and a signed-in session: the caller completes the login.
+        if ($credentialsOnly) {
+            return ['ok' => true, 'message' => 'Credentials accepted.', 'user' => $user];
+        }
 
         self::login($user, $remember);
 

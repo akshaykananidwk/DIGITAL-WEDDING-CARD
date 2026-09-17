@@ -20,6 +20,7 @@ php bin/console health       # the 23 runtime checks
 
 ```
 ■ Security                                    44 checks    939 ms
+■ Two-step sign-in                            35 checks  6 544 ms
 ■ Authentication and authorisation            25 checks  1 065 ms
 ■ Templates and the engine                    79 checks  2 810 ms
 ■ Invitations, slugs and RSVP                 53 checks    313 ms
@@ -28,7 +29,7 @@ php bin/console health       # the 23 runtime checks
 ■ AI generator and recommender                38 checks     13 ms
 ■ System, installer, backups and updates     129 checks  4 616 ms
 ──────────────────────────────────────────────────────────────────
-All 450 checks passed in 10.0 s across 8 cases
+All 488 checks passed in 17.0 s across 9 cases
 ```
 
 The runner has no dependencies — no Composer, no PHPUnit, no Node — so it runs on the
@@ -47,7 +48,7 @@ empty database.
 | Requirements | 23 checks passed; 2 advisory warnings (upload size 2 MB, no certificate on localhost) |
 | Database connection | MariaDB 10.11.14, database created by the installer |
 | Configuration written | `/home/user/.invitation-secrets/app.php`, mode 0640, **outside the web root** |
-| Migrations | 7 files, 39 tables |
+| Migrations | 8 files, 40 tables |
 | Roles and permissions | 51 permissions, 4 roles, 52 grants, 2 plans |
 | Settings | 50 settings, 12 feature flags |
 | Fonts | 8 registered (5 embeddable in PDFs, including Gujarati and Devanagari) |
@@ -103,6 +104,7 @@ produced file, not just by a 200 response.
 | Registration | Account created, password stored hashed, redirected into the builder |
 | Login / logout | Session established, cookie flags correct, logout clears it |
 | Login throttling | 20 failures allowed, the 21st returns **429** |
+| Two-step sign-in | Enabled on the profile screen; a correct password redirected to `/login/verify` and `/dashboard` still bounced to login; the emailed code signed in; a wrong code was refused with the attempts left; the code could not be reused |
 | Template browsing | Gallery, filters (category, language, colour, type, tag), search, detail, full-screen preview |
 | Invitation creation | Created from a template as a draft with a unique slug and short code, default sections seeded |
 | Content saving | Values persisted per field; unknown keys ignored; markup and over-long values rejected |
@@ -206,7 +208,7 @@ files but left the database alone. Both are covered by the suite now.
 | Render an invitation (server side) | 5 ms |
 | Generate an A4 PDF with Gujarati text | 45 ms |
 | Generate a QR PNG | 11 ms |
-| Database dump (39 tables, demo data) | ~1 s, 518 KB |
+| Database dump (40 tables, demo data) | ~1 s, 520 KB |
 | Full backup (database + files) | ~3 s, 1.8 MB |
 | Complete update cycle | ~13 s |
 
@@ -272,6 +274,7 @@ application, and each one is now covered by a check that fails if it comes back.
 | 16 | Icon-only controls in three places had a `title` but no `aria-label` | Browser render |
 | 17 | Column mismatches in new views (template previews, health timestamps, RSVP read flag, notification links) | HTTP sweep |
 | 18 | `X-Powered-By` was only removed by `.htaccess`, so hosts without `mod_headers` advertised the PHP version | Header review |
+| 19 | A long card silently lost its programme and family names, and the QR footer could be drawn past the paper edge | PDF review |
 
 ## 11. Known limitations
 

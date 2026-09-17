@@ -1,6 +1,7 @@
 <?php
 /**
  * @var array<string,mixed> $user
+ * @var bool $twoFactorAvailable
  * @var array{count:int,bytes:int} $storage
  * @var array<string,mixed> $limits
  * @var array<int,array<string,mixed>> $tokens
@@ -66,6 +67,19 @@ $mb = static fn (int $bytes): string => number_format($bytes / 1048576, 1) . ' M
                             <input class="form-control" type="text" id="city" name="city" maxlength="80"
                                    value="<?= e(old('city', (string) ($user['city'] ?? ''))) ?>">
                         </div>
+                        <?php if (!empty($twoFactorAvailable)): ?>
+                            <div class="col-12">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" value="1"
+                                           id="two_factor_enabled" name="two_factor_enabled"
+                                        <?= (int) ($user['two_factor_enabled'] ?? 0) === 1 ? 'checked' : '' ?>>
+                                    <label class="form-check-label" for="two_factor_enabled">
+                                        <?= e(__('auth.two_factor')) ?>
+                                    </label>
+                                </div>
+                                <div class="form-text"><?= e(__('auth.two_factor_hint')) ?></div>
+                            </div>
+                        <?php endif; ?>
                         <div class="col-12 col-sm-6">
                             <label class="form-label" for="locale"><?= e(__('common.language')) ?></label>
                             <select class="form-select" id="locale" name="locale">

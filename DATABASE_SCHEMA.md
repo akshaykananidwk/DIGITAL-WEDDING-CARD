@@ -1,6 +1,6 @@
 # Database schema
 
-39 tables, MySQL 5.7+/MariaDB 10.3+ (`utf8mb4` / `utf8mb4_unicode_ci` throughout so
+40 tables, MySQL 5.7+/MariaDB 10.3+ (`utf8mb4` / `utf8mb4_unicode_ci` throughout so
 Gujarati, Hindi and emoji all store and sort correctly). The same migrations also run
 on SQLite, which is what lets the test suite and a local copy run without a database
 server — every DDL statement is generated for both dialects from one definition in
@@ -77,6 +77,13 @@ stays on `users.role_id` so the common lookup is one join-free read.
 `selector` (unique), `validator_hash`, `user_id`, `email`, `expires_at`, `ip_hash`,
 `used_at`. The selector goes in the URL, the validator is hashed — a stolen database
 row cannot be turned back into a working link.
+
+### `auth_otp_codes`
+One-time login codes for the optional second factor: `user_id`, `purpose`, `channel`,
+`code_hash` (a password hash, never the code), `sent_to`, `attempts`, `ip_hash`,
+`expires_at`, `consumed_at`. Indexed on `(user_id, purpose, expires_at)`. The attempt
+counter is on the row rather than in the session, so a new session cannot be used to
+get another five guesses. `users.two_factor_enabled` is the per-user opt-in.
 
 ### `sessions`
 `id` (the session id), `user_id`, `ip_hash`, `user_agent`, `payload`, `last_activity`.
@@ -249,6 +256,7 @@ database/migrations/
   2026_01_01_000006_create_system_tables.php        settings, flags, media, fonts, pages, ai, audit,
                                                     notifications, backups, updates, health, cron
   2026_01_02_000001_add_update_database_backup_path.php
+  2026_01_02_000002_create_auth_otp_codes.php       second-factor codes, users.two_factor_enabled
 ```
 
 Each file returns an anonymous class with `up(Database)` and `down(Database)`. The

@@ -50,6 +50,15 @@ return [
         'have_account'      => 'Already have an account?',
         'terms_notice'      => 'By creating an account you agree to our Terms and Privacy Policy.',
         'logged_out'        => 'You have been signed out.',
+        'otp_title' => 'Enter your code',
+        'otp_subtitle' => 'We emailed a six-digit code to :email. It expires in ten minutes.',
+        'otp_code' => 'Six-digit code',
+        'otp_hint' => 'Check your inbox, and your spam folder if it is not there.',
+        'otp_submit' => 'Verify and sign in',
+        'otp_resend' => 'Send me another code',
+        'otp_start_over' => 'Start again with a different account',
+        'two_factor' => 'Two-step sign-in',
+        'two_factor_hint' => 'Ask for an emailed code as well as your password. Recommended if you host invitations for other families.',
     ],
 
     'dashboard' => [
