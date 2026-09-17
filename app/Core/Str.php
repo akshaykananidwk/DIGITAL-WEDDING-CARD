@@ -107,13 +107,6 @@ final class Str
         return $needle !== '' && str_contains($haystack, $needle);
     }
 
-    /** Constant-time comparison for tokens and signatures. */
-    public static function secureEquals(string $known, string $given): bool
-    {
-        return hash_equals($known, $given);
-    }
-
-    /** Mask a secret for display (ghp_abc...xyz). */
     /**
      * Mask an email address for display: a••••y@example.com
      *

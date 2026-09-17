@@ -142,6 +142,11 @@ before creating an invitation from it:
              "options":[],"max_length":80,"ai":true}]}}
 ```
 
+> Outside the versioned API, the gallery's own search box calls
+> `GET /templates/suggest?q=…` (no `/api/v1` prefix, no authentication) and gets
+> `{"suggestions":["Classic Gujarati Kankotri", …]}` — template and occasion names
+> only, throttled to 120 per minute.
+
 ### `POST /rsvp/{slug}`
 A guest response to a published invitation. `name` (required), `response`
 (`yes`/`maybe`/`no`), `guests`, `phone`, `email`, `message`. Throttled to 20 per hour

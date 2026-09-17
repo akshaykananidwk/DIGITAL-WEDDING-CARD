@@ -34,6 +34,20 @@ final class TemplateBrowseController extends Controller
     ) {
     }
 
+    /**
+     * Search suggestions for the gallery's search box.
+     *
+     * Public gallery data only - template and occasion names - so it needs no
+     * session, but it is throttled like the other open endpoints.
+     */
+    public function suggest(Request $request): Response
+    {
+        $suggestions = (new \App\Services\TemplateRecommenderService())
+            ->suggestions((string) $request->query('q', ''));
+
+        return Response::json(['suggestions' => $suggestions])->cache(60);
+    }
+
     public function index(Request $request): Response
     {
         $filters = $this->filtersFrom($request);

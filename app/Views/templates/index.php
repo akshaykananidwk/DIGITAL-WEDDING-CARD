@@ -45,7 +45,9 @@ $hasFilters = ($filters['q'] ?? '') !== '' || ($filters['category_slug'] ?? '') 
                 <div class="mb-3">
                     <label class="form-label small fw-semibold" for="f-q"><?= e(__('templates.search')) ?></label>
                     <input class="form-control form-control-sm" type="search" id="f-q" name="q"
-                           maxlength="80" value="<?= e((string) $filters['q']) ?>">
+                           maxlength="80" value="<?= e((string) $filters['q']) ?>"
+                           list="sk-q-suggestions" autocomplete="off">
+                    <datalist id="sk-q-suggestions"></datalist>
                 </div>
 
                 <div class="mb-3">
@@ -171,3 +173,44 @@ $hasFilters = ($filters['q'] ?? '') !== '' || ($filters['category_slug'] ?? '') 
         </div>
     </div>
 </div>
+
+<?php $view->start('scripts'); ?>
+<script<?= App\Core\Csp::attribute() ?>>
+    // Suggestions for the search box. A datalist is used on purpose: the
+    // browser draws and filters the list, so there is no custom dropdown to
+    // get wrong with a keyboard or a screen reader, and the box still works
+    // as a plain text field if this request fails.
+    window.addEventListener('load', function () {
+        const input = document.getElementById('f-q');
+        const list = document.getElementById('sk-q-suggestions');
+        if (!input || !list) { return; }
+
+        let timer = null;
+        let last = '';
+        input.addEventListener('input', function () {
+            const term = input.value.trim();
+            if (term.length < 2 || term === last) { return; }
+            window.clearTimeout(timer);
+            timer = window.setTimeout(async function () {
+                last = term;
+                try {
+                    const response = await fetch(
+                        <?= ejs(url('templates/suggest')) ?> + '?q=' + encodeURIComponent(term),
+                        { headers: { 'Accept': 'application/json' } }
+                    );
+                    if (!response.ok) { return; }
+                    const data = await response.json();
+                    list.replaceChildren();
+                    (data.suggestions || []).forEach(function (name) {
+                        const option = document.createElement('option');
+                        option.value = name;
+                        list.appendChild(option);
+                    });
+                } catch (error) {
+                    // A failed suggestion is not worth telling anyone about.
+                }
+            }, 220);
+        });
+    });
+</script>
+<?php $view->stop(); ?>

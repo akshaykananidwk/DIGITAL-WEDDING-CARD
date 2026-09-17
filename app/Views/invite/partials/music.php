@@ -10,11 +10,22 @@
 ?>
 <audio id="inv-audio" src="<?= e($c->musicUrl()) ?>" preload="none" loop></audio>
 
+<?php
+/*
+ * The track name goes in the tooltip and the accessible name: a guest
+ * deciding whether to turn sound on deserves to know what will play.
+ * musicTitle() is already escaped, like the other context accessors, so it
+ * is concatenated after escaping the label rather than escaped again.
+ */
+$track = $c->musicTitle();
+$label = e(__('invite.play_music')) . ($track !== '' ? ' - ' . $track : '');
+?>
 <button type="button" class="inv-music"
         data-inv-autoplay="<?= $c->musicAutoplay() ? '1' : '0' ?>"
         data-label-play="<?= e(__('invite.play_music')) ?>"
         data-label-pause="<?= e(__('invite.pause_music')) ?>"
-        aria-pressed="false" aria-label="<?= e(__('invite.play_music')) ?>">
+        title="<?= $label ?>"
+        aria-pressed="false" aria-label="<?= $label ?>">
     <span class="inv-music__bars" aria-hidden="true">
         <svg viewBox="0 0 16 16" width="18" height="18" fill="currentColor">
             <rect x="2" y="5" width="2.5" height="6" rx="1"/>

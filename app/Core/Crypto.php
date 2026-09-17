@@ -76,15 +76,4 @@ final class Crypto
         }
         return $plain;
     }
-
-    public static function isEncrypted(?string $value): bool
-    {
-        return is_string($value) && str_starts_with($value, self::PREFIX);
-    }
-
-    /** Keyed hash for lookup columns that must not store the plain value. */
-    public static function hmac(string $value): string
-    {
-        return hash_hmac('sha256', $value, self::key());
-    }
 }

@@ -37,6 +37,7 @@ final class TemplateTest extends TestCase
         $this->engine();
         $this->placeholders();
         $this->components();
+        $this->suggestions();
         $this->scalability();
     }
 
@@ -183,6 +184,35 @@ final class TemplateTest extends TestCase
             $engine->context(array_merge($row, ['custom_html' => null]), ['groom_name' => '<b>x</b>'], true)
         );
         $this->assertNotContains('Engine: a placeholder value cannot inject markup', '<b>x</b>', $resolved);
+    }
+
+    /** The gallery search box's suggestions. */
+    private function suggestions(): void
+    {
+        $recommender = new \App\Services\TemplateRecommenderService();
+
+        $this->assertSame(
+            'Suggestions: a single character suggests nothing',
+            [],
+            $recommender->suggestions('k')
+        );
+
+        $found = $recommender->suggestions('kank');
+        $this->assertTrue('Suggestions: a known word returns matches', $found !== []);
+        $this->assertTrue(
+            'Suggestions: every suggestion is a name, not a row',
+            array_filter($found, static fn ($name): bool => !is_string($name) || $name === '') === []
+        );
+        $this->assertSame(
+            'Suggestions: there are no duplicates',
+            count($found),
+            count(array_unique($found))
+        );
+        $this->assertSame(
+            'Suggestions: nonsense returns nothing',
+            [],
+            $recommender->suggestions('zzzqqxnothing')
+        );
     }
 
     /**

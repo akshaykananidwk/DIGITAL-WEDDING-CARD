@@ -32,6 +32,7 @@ $router->group('', ['installed', 'maintenance'], static function ($router): void
     $router->get('/', [Web\HomeController::class, 'index'], [], 'home');
 
     $router->get('/templates', [Web\TemplateBrowseController::class, 'index'], [], 'templates');
+    $router->get('/templates/suggest', [Web\TemplateBrowseController::class, 'suggest'], ['throttle:api,120,60']);
     $router->get('/templates/{slug:[a-z0-9\-]+}', [Web\TemplateBrowseController::class, 'show'], [], 'template.show');
     $router->get('/templates/{slug:[a-z0-9\-]+}/preview', [Web\TemplateBrowseController::class, 'preview'], [], 'template.preview');
 
