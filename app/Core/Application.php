@@ -222,6 +222,10 @@ final class Application
      */
     private function applySecurityHeaders(Response $response, Request $request): Response
     {
+        // Some hosts cannot unset this in Apache config, so do it here too:
+        // the PHP version is free reconnaissance for an attacker.
+        header_remove('X-Powered-By');
+
         $response->header('X-Content-Type-Options', 'nosniff');
         $response->header('Referrer-Policy', 'strict-origin-when-cross-origin');
         $response->header('X-Frame-Options', str_starts_with($request->path(), '/invite') ? 'ALLOWALL' : 'SAMEORIGIN');

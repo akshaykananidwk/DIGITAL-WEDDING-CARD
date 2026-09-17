@@ -27,7 +27,7 @@ $view->extend('layouts.app');
                                 <div class="small text-muted"><?= e((string) $note['body']) ?></div>
                                 <div class="sk-row__meta">
                                     <span><?= e(date('d M Y, H:i', strtotime((string) $note['created_at']))) ?></span>
-                                    <?php if (($link = (string) ($note['link'] ?? '')) !== ''): ?>
+                                    <?php if (($link = (string) ($note['url'] ?? '')) !== ''): ?>
                                         <a href="<?= e(url($link)) ?>"><?= e(__('common.view')) ?></a>
                                     <?php endif; ?>
                                 </div>

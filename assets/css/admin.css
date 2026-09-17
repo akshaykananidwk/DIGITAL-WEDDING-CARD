@@ -87,3 +87,39 @@
 .sk-log-view .is-error { color: #FF9C8A; }
 .sk-log-view .is-warning { color: #FFD48A; }
 .sk-log-view .is-security { color: #9AD8FF; }
+
+/* ---- Media library tiles ---- */
+.sk-media-tile {
+    margin: 0;
+    border: 1px solid var(--sk-line);
+    border-radius: var(--sk-radius-sm);
+    background: var(--sk-surface);
+    overflow: hidden;
+}
+.sk-media-tile__preview {
+    display: grid;
+    place-items: center;
+    width: 100%;
+    aspect-ratio: 1;
+    border: 0;
+    padding: 0;
+    background: var(--sk-cream-deep);
+    color: var(--sk-muted);
+    font-size: 1.6rem;
+}
+.sk-media-tile__preview img { width: 100%; height: 100%; object-fit: cover; }
+.sk-media-tile figcaption { padding: .4rem .5rem; }
+
+/* ---- Log viewer ---- */
+.sk-log {
+    max-height: 70vh;
+    overflow: auto;
+    font-size: .78rem;
+    line-height: 1.5;
+    background: #1D1712;
+    color: #F4EDE2;
+    padding: 1rem;
+    border-radius: var(--sk-radius-sm);
+    white-space: pre-wrap;
+    word-break: break-word;
+}

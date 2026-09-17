@@ -39,12 +39,22 @@ $view->extend('layouts.admin');
             </select>
         </div>
         <div class="col-6 col-sm-auto">
-            <label class="form-label small mb-1" for="status">Status</label>
-            <select class="form-select form-select-sm" id="status" name="status" data-sk-auto-submit>
+            <label class="form-label small mb-1" for="language">Language</label>
+            <select class="form-select form-select-sm" id="language" name="language" data-sk-auto-submit>
                 <option value="">All</option>
-                <option value="active" <?= ($filters['status'] ?? '') === 'active' ? 'selected' : '' ?>>Active</option>
-                <option value="inactive" <?= ($filters['status'] ?? '') === 'inactive' ? 'selected' : '' ?>>Inactive</option>
+                <?php foreach (['gu' => 'ગુજરાતી', 'hi' => 'हिन्दी', 'en' => 'English', 'multi' => 'Multi'] as $code => $label): ?>
+                    <option value="<?= e($code) ?>" <?= ($filters['language'] ?? '') === $code ? 'selected' : '' ?>>
+                        <?= e($label) ?>
+                    </option>
+                <?php endforeach; ?>
             </select>
+        </div>
+        <div class="col-6 col-sm-auto">
+            <div class="form-check form-switch mt-3">
+                <input class="form-check-input" type="checkbox" value="1" id="inactive" name="inactive"
+                       data-sk-auto-submit <?= ($filters['active'] ?? true) === false ? 'checked' : '' ?>>
+                <label class="form-check-label small" for="inactive">Include inactive</label>
+            </div>
         </div>
         <div class="col-6 col-sm-auto">
             <button class="btn btn-sm btn-outline-secondary w-100" type="submit">Filter</button>

@@ -46,8 +46,12 @@ final class Session
         ini_set('session.use_only_cookies', '1');
         ini_set('session.cookie_httponly', '1');
         ini_set('session.gc_maxlifetime', (string) max(1440, $lifetime));
-        ini_set('session.sid_length', '48');
-        ini_set('session.sid_bits_per_character', '5');
+        // Deprecated in PHP 8.4, where the built-in session ID is already
+        // 32 bytes of CSPRNG output; only worth setting on older versions.
+        if (PHP_VERSION_ID < 80400) {
+            ini_set('session.sid_length', '48');
+            ini_set('session.sid_bits_per_character', '5');
+        }
 
         session_name($name);
         session_set_cookie_params([

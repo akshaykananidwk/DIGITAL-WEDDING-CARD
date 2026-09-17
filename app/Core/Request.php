@@ -143,8 +143,18 @@ final class Request
         return $this->headers;
     }
 
+    /**
+     * A request value, from the route first, then the body, then the query.
+     *
+     * The route wins deliberately: /admin/users/7/status identifies user 7,
+     * and a posted "id" field must not be able to redirect that write to
+     * another row.
+     */
     public function input(string $key, mixed $default = null): mixed
     {
+        if (array_key_exists($key, $this->routeParams)) {
+            return $this->routeParams[$key];
+        }
         $value = Arr::get($this->body, $key, Arr::get($this->query, $key, $default));
         return is_string($value) ? trim($value) : $value;
     }

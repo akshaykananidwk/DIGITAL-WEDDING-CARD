@@ -24,7 +24,7 @@ final class TemplateRepository extends BaseRepository
         t.thumbnail, t.color_primary, t.color_secondary, t.color_background,
         t.font_heading, t.is_premium, t.is_featured, t.has_animation, t.page_count,
         t.use_count, t.view_count, t.rating, t.category_id, t.subcategory_id, t.tags,
-        t.orientation, t.created_at';
+        t.orientation, t.is_active, t.created_at';
 
     public function findBySlug(string $slug, bool $activeOnly = true): ?array
     {

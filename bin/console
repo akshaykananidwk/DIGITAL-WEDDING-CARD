@@ -1,0 +1,366 @@
+#!/usr/bin/env php
+<?php
+/**
+ * Command line entry point.
+ *
+ * Used for cron, for maintenance and for installing from a shell when that is
+ * easier than the web installer. It shares the application bootstrap, so the
+ * same configuration, database connection and services are used either way.
+ *
+ * Usage:
+ *   php bin/console <command> [options]
+ */
+
+declare(strict_types=1);
+
+if (PHP_SAPI !== 'cli') {
+    http_response_code(404);
+    exit("This script runs from the command line only.\n");
+}
+
+define('APP_START', microtime(true));
+define('APP_CLI', true);
+define('ROOT_PATH', dirname(__DIR__));
+
+require ROOT_PATH . '/app/bootstrap.php';
+
+use App\Core\Cache;
+use App\Core\Config;
+use App\Core\Database;
+use App\Core\Logger;
+use App\Core\Migrator;
+use App\Core\Version;
+use App\Services\BackupService;
+use App\Services\CronService;
+use App\Services\HealthService;
+use App\Services\InstallService;
+use App\Services\PdfService;
+use App\Services\SitemapService;
+use App\Services\TemplateGeneratorService;
+
+// ---------------------------------------------------------------------------
+//  Tiny output helpers
+// ---------------------------------------------------------------------------
+
+$supportsColour = function_exists('posix_isatty') ? @posix_isatty(STDOUT) : false;
+$paint = static function (string $text, string $colour) use ($supportsColour): string {
+    if (!$supportsColour) {
+        return $text;
+    }
+    $codes = ['red' => '0;31', 'green' => '0;32', 'yellow' => '0;33', 'blue' => '0;34', 'grey' => '0;90'];
+    return "\033[" . ($codes[$colour] ?? '0') . 'm' . $text . "\033[0m";
+};
+$line = static function (string $text = '') : void {
+    fwrite(STDOUT, $text . PHP_EOL);
+};
+$ok = static fn (string $text) => $line($paint('  ✓ ', 'green') . $text);
+$warn = static fn (string $text) => $line($paint('  ! ', 'yellow') . $text);
+$fail = static fn (string $text) => $line($paint('  ✗ ', 'red') . $text);
+$heading = static fn (string $text) => $line(PHP_EOL . $paint($text, 'blue'));
+
+/** Read --key=value and --flag arguments. */
+$options = [];
+$positional = [];
+foreach (array_slice($argv, 2) as $argument) {
+    if (str_starts_with($argument, '--')) {
+        $pair = explode('=', substr($argument, 2), 2);
+        $options[$pair[0]] = $pair[1] ?? true;
+    } else {
+        $positional[] = $argument;
+    }
+}
+$option = static function (string $key, mixed $default = null) use ($options): mixed {
+    return $options[$key] ?? $default;
+};
+
+$command = $argv[1] ?? 'help';
+
+$requireInstalled = static function () use ($fail): void {
+    if (!Config::isInstalled()) {
+        $fail('The application is not installed yet. Run: php bin/console install --help');
+        exit(1);
+    }
+};
+
+// ---------------------------------------------------------------------------
+//  Commands
+// ---------------------------------------------------------------------------
+
+try {
+    switch ($command) {
+        case 'help':
+        case '--help':
+        case '-h':
+            $line($paint('Shubh Kankotri', 'blue') . ' · v' . Version::current());
+            $line();
+            $line('Usage: php bin/console <command> [--option=value]');
+            $line();
+            $line($paint('Setup', 'grey'));
+            $line('  install                 Install from the command line (see --help below)');
+            $line('  migrate                 Run pending database migrations');
+            $line('  migrate:status           Show applied and pending migrations');
+            $line('  migrate:rollback         Roll back the most recent migration batch');
+            $line('  seed [--demo]           Seed roles, settings, categories, templates, fonts, pages');
+            $line();
+            $line($paint('Operations', 'grey'));
+            $line('  cron:run [--task=name]  Run every scheduled task, or just one');
+            $line('  cron:list               List the scheduled tasks and their last run');
+            $line('  health                  Run the health checks and print the result');
+            $line('  backup [--type=database|files|full] [--note="text"]');
+            $line('  cache:clear             Clear the application cache');
+            $line('  sitemap                 Rebuild sitemap.xml');
+            $line('  templates:generate --count=250');
+            $line('  pdf:test [--out=path]   Render a PDF and report on it');
+            $line('  version                 Print the version and environment');
+            $line();
+            $line($paint('install options', 'grey'));
+            $line('  --db-host --db-port --db-name --db-user --db-pass');
+            $line('  --site-name --site-url --admin-name --admin-email --admin-pass');
+            $line('  --demo (seed demo content)   --templates=N (generate extra templates)');
+            break;
+
+        case 'version':
+            $line('Application : v' . Version::current());
+            $line('Schema      : v' . Version::installed());
+            $line('PHP         : ' . PHP_VERSION . ' (' . PHP_SAPI . ')');
+            $line('Installed   : ' . (Config::isInstalled() ? 'yes' : 'no'));
+            $line('Timezone    : ' . date_default_timezone_get());
+            if (Config::isInstalled()) {
+                try {
+                    $line('Database    : ' . Database::instance()->version());
+                } catch (Throwable $e) {
+                    $warn('Database    : unavailable (' . $e->getMessage() . ')');
+                }
+            }
+            break;
+
+        case 'install':
+            if ($option('help') !== null) {
+                $line('php bin/console install --db-name=… --admin-email=… --admin-pass=…');
+                break;
+            }
+            if (Config::isInstalled()) {
+                $fail('Application already installed.');
+                $line('  Remove ' . (new InstallService())->lockPath() . ' and the secret config file'
+                    . ' first if you really mean to reinstall.');
+                exit(1);
+            }
+
+            $service = new InstallService();
+            $heading('Requirements');
+            $requirements = $service->requirements();
+            foreach ($requirements['groups'] as $group => $checks) {
+                $line('  ' . $paint($group, 'grey'));
+                foreach ($checks as $check) {
+                    $message = (string) $check['label'] . ' — ' . (string) $check['detail'];
+                    if ($check['passed']) {
+                        $ok($message);
+                    } elseif (empty($check['required'])) {
+                        $warn($message);
+                    } else {
+                        $fail($message);
+                    }
+                }
+            }
+            if (!$requirements['ok']) {
+                $fail('Requirements not met. Fix the failures above and try again.');
+                exit(1);
+            }
+
+            $heading('Installing');
+            $result = $service->install([
+                'db_driver'   => (string) $option('db-driver', 'mysql'),
+                'db_host'     => (string) $option('db-host', '127.0.0.1'),
+                'db_port'     => (string) $option('db-port', '3306'),
+                'db_database' => (string) $option('db-name', 'kankotri'),
+                'db_username' => (string) $option('db-user', 'root'),
+                'db_password' => (string) $option('db-pass', ''),
+                'db_prefix'   => (string) $option('db-prefix', ''),
+                'db_socket'   => (string) $option('db-socket', ''),
+                'site_name'   => (string) $option('site-name', 'Shubh Kankotri'),
+                'site_url'    => (string) $option('site-url', 'http://localhost'),
+                'locale'      => (string) $option('locale', 'gu'),
+                'admin_name'  => (string) $option('admin-name', 'Administrator'),
+                'admin_email' => (string) $option('admin-email', ''),
+                'admin_phone' => (string) $option('admin-phone', ''),
+                'admin_password' => (string) $option('admin-pass', ''),
+                'admin_password_confirmation' => (string) $option('admin-pass', ''),
+                'create_demo' => $option('demo') !== null,
+                'template_count' => (int) $option('templates', 0),
+            ]);
+
+            foreach ($result['steps'] as $step) {
+                $message = (string) $step['label'] . ' — ' . (string) $step['detail'];
+                $step['ok'] ? $ok($message) : $fail($message);
+            }
+            if (!$result['ok']) {
+                $fail((string) $result['message']);
+                exit(1);
+            }
+            $line();
+            $ok((string) $result['message']);
+            break;
+
+        case 'migrate':
+            $requireInstalled();
+            $migrator = new Migrator(Database::instance());
+            $result = $migrator->run();
+            foreach ($result['notes'] as $note) {
+                $ok($note);
+            }
+            $line($result['ran'] === []
+                ? 'Database is already up to date.'
+                : count($result['ran']) . ' migration(s) applied in batch ' . $result['batch'] . '.');
+            break;
+
+        case 'migrate:status':
+            $requireInstalled();
+            $migrator = new Migrator(Database::instance());
+            $migrator->ensureRepository();
+            $applied = $migrator->applied();
+            $heading('Applied');
+            foreach ($applied as $name) {
+                $ok($name);
+            }
+            $heading('Pending');
+            $pending = $migrator->pending();
+            if ($pending === []) {
+                $line('  (none)');
+            }
+            foreach ($pending as $name) {
+                $warn($name);
+            }
+            break;
+
+        case 'migrate:rollback':
+            $requireInstalled();
+            $migrator = new Migrator(Database::instance());
+            $rolled = $migrator->rollbackLastBatch();
+            foreach ($migrator->notes() as $note) {
+                $warn($note);
+            }
+            $line('Rolled back ' . count($rolled) . ' migration(s).');
+            break;
+
+        case 'seed':
+            $requireInstalled();
+            $db = Database::instance();
+            $seeders = [
+                new App\Seeds\RoleSeeder($db),
+                new App\Seeds\SettingSeeder($db),
+                new App\Seeds\CategorySeeder($db),
+                new App\Seeds\TemplateSeeder($db),
+                new App\Seeds\FontSeeder($db),
+                new App\Seeds\PageSeeder($db),
+            ];
+            if ($option('demo') !== null) {
+                $seeders[] = new App\Seeds\DemoSeeder($db);
+            }
+            foreach ($seeders as $seeder) {
+                $seeder->run();
+                foreach ($seeder->notes() as $note) {
+                    $ok($note);
+                }
+            }
+            Cache::flush();
+            break;
+
+        case 'cron:run':
+            $requireInstalled();
+            $task = (string) $option('task', 'all');
+            $results = (new CronService())->run($task);
+            $failed = 0;
+            foreach ($results as $name => $result) {
+                $message = $name . ': ' . $result['message'] . ' (' . $result['duration_ms'] . 'ms)';
+                if ($result['ok']) {
+                    $ok($message);
+                } else {
+                    $fail($message);
+                    $failed++;
+                }
+            }
+            exit($failed > 0 ? 1 : 0);
+
+        case 'cron:list':
+            $requireInstalled();
+            foreach ((new CronService())->status() as $name => $task) {
+                $last = $task['last_run'];
+                $line(sprintf(
+                    '  %-14s %-10s %s',
+                    $name,
+                    $last === null ? 'never' : (string) $last['status'],
+                    (string) $task['description']
+                ));
+            }
+            break;
+
+        case 'health':
+            $requireInstalled();
+            $result = (new HealthService())->run('cli', $option('record') !== null);
+            foreach ($result['checks'] as $check) {
+                $message = str_pad((string) $check['label'], 26) . (string) $check['message'];
+                match ((string) $check['status']) {
+                    'healthy' => $ok($message),
+                    'warning' => $warn($message),
+                    default   => $fail($message),
+                };
+            }
+            $line();
+            $line('Overall: ' . strtoupper((string) $result['status']));
+            exit((string) $result['status'] === 'critical' ? 1 : 0);
+
+        case 'backup':
+            $requireInstalled();
+            $result = (new BackupService())->create(
+                (string) $option('type', 'database'),
+                (string) $option('note', 'Created from the CLI')
+            );
+            $result['ok'] ? $ok((string) $result['message']) : $fail((string) $result['message']);
+            exit($result['ok'] ? 0 : 1);
+
+        case 'cache:clear':
+            $count = Cache::flush();
+            $ok('Cleared ' . $count . ' cache entr' . ($count === 1 ? 'y' : 'ies') . '.');
+            break;
+
+        case 'sitemap':
+            $requireInstalled();
+            $sitemap = new SitemapService();
+            $sitemap->flush();
+            $xml = $sitemap->xml();
+            $ok('Sitemap rebuilt: ' . substr_count($xml, '<url>') . ' URLs, '
+                . number_format(strlen($xml) / 1024, 1) . ' KB.');
+            break;
+
+        case 'templates:generate':
+            $requireInstalled();
+            $count = (int) $option('count', 250);
+            $result = (new TemplateGeneratorService())->generate($count, $option('draft') === null, null);
+            $ok((string) $result['message']);
+            break;
+
+        case 'pdf:test':
+            $requireInstalled();
+            $result = (new PdfService())->selfTest();
+            $result['ok'] ? $ok((string) $result['message']) : $fail((string) $result['message']);
+            exit($result['ok'] ? 0 : 1);
+
+        default:
+            $fail('Unknown command: ' . $command);
+            $line('Run "php bin/console help" for the list of commands.');
+            exit(1);
+    }
+} catch (Throwable $e) {
+    $fail(get_class($e) . ': ' . $e->getMessage());
+    if ($option('verbose') !== null) {
+        $line($e->getTraceAsString());
+    }
+    try {
+        Logger::error('CLI command failed: ' . $e->getMessage(), ['command' => $command]);
+    } catch (Throwable) {
+        // Logging must never mask the original failure.
+    }
+    exit(1);
+}
+
+exit(0);

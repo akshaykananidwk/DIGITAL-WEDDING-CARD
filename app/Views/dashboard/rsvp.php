@@ -90,7 +90,7 @@ $tabs = [
                             'yes' => 'success', 'maybe' => 'warning', default => 'secondary',
                         };
                         ?>
-                        <tr class="<?= $row['read_at'] === null ? 'fw-semibold' : '' ?>">
+                        <tr class="<?= (int) $row['is_read'] === 0 ? 'fw-semibold' : '' ?>">
                             <td>
                                 <?= e($row['name']) ?>
                                 <?php if (($phone = (string) ($row['phone'] ?? '')) !== ''): ?>

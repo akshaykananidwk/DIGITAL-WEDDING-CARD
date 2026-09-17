@@ -9,7 +9,8 @@
 $view->extend('layouts.app');
 $tags = is_array($template['tags'] ?? null) ? $template['tags'] : [];
 $features = is_array($template['features'] ?? null) ? $template['features'] : [];
-$thumb = (string) ($template['preview_image'] ?: $template['thumbnail']);
+$previews = is_array($template['preview_images'] ?? null) ? $template['preview_images'] : [];
+$thumb = (string) ($previews[0] ?? $template['thumbnail'] ?? '');
 ?>
 
 <div class="container py-4">

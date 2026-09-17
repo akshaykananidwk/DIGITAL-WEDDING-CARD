@@ -12,6 +12,15 @@ namespace App\Core;
  */
 final class Router
 {
+    /**
+     * The body of a {name:pattern} placeholder.
+     *
+     * Anything but a brace, plus regex quantifiers like {2} or {4,12}, so a
+     * route such as /i/{code:[A-Za-z0-9]{4,12}} compiles correctly instead of
+     * being truncated at the first closing brace.
+     */
+    private const PATTERN_BODY = '(?:[^{}]|\{\d+(?:,\d*)?\})+';
+
     /** @var array<string,array<string,array{handler:mixed,middleware:array<int,string>,name:string}>> */
     private array $static = [];
 
@@ -94,7 +103,7 @@ final class Router
 
         $params = [];
         $regex = preg_replace_callback(
-            '/\{([a-zA-Z_][a-zA-Z0-9_]*)(?::([^}]+))?\}/',
+            '/\{([a-zA-Z_][a-zA-Z0-9_]*)(?::(' . self::PATTERN_BODY . '))?\}/',
             static function (array $m) use (&$params): string {
                 $params[] = $m[1];
                 $pattern = $m[2] ?? '[^/]+';
@@ -181,7 +190,11 @@ final class Router
             throw new \InvalidArgumentException("Unknown route name: {$name}");
         }
         foreach ($params as $key => $value) {
-            $path = preg_replace('/\{' . preg_quote((string) $key, '/') . '(?::[^}]+)?\}/', rawurlencode((string) $value), $path) ?? $path;
+            $path = preg_replace(
+                '/\{' . preg_quote((string) $key, '/') . '(?::' . self::PATTERN_BODY . ')?\}/',
+                rawurlencode((string) $value),
+                $path
+            ) ?? $path;
         }
         return Url::to($path);
     }

@@ -46,19 +46,24 @@ final class ErrorHandler
     public static function handleException(\Throwable $e): void
     {
         $reference = strtoupper(substr(bin2hex(random_bytes(4)), 0, 8));
+        $status = $e instanceof HttpException ? $e->getStatusCode() : 500;
 
-        Logger::critical($e::class . ': ' . $e->getMessage(), [
-            'reference' => $reference,
-            'file'      => $e->getFile(),
-            'line'      => $e->getLine(),
-            'trace'     => self::compactTrace($e),
-        ]);
+        // A 404 or a rejected form is an expected outcome, not a fault: it is
+        // recorded without a stack trace so genuine failures stay visible.
+        if ($e instanceof HttpException && $status < 500) {
+            Logger::info($status . ' ' . $e->getMessage(), ['reference' => $reference]);
+        } else {
+            Logger::critical($e::class . ': ' . $e->getMessage(), [
+                'reference' => $reference,
+                'file'      => $e->getFile(),
+                'line'      => $e->getLine(),
+                'trace'     => self::compactTrace($e),
+            ]);
+        }
 
         while (ob_get_level() > 0) {
             ob_end_clean();
         }
-
-        $status = $e instanceof HttpException ? $e->getStatusCode() : 500;
 
         if (Request::wantsJson()) {
             self::sendJson($status, $e, $reference);

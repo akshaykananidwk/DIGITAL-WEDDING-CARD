@@ -78,7 +78,7 @@ $lastBackup = $backup['latest'] ?? null;
                         <tr>
                             <td class="text-nowrap small text-muted"><?= e(date('d M H:i', strtotime((string) $entry['created_at']))) ?></td>
                             <td><code class="sk-code"><?= e((string) $entry['action']) ?></code></td>
-                            <td class="small"><?= e((string) ($entry['user_name'] ?? $entry['user_id'] ?? 'system')) ?></td>
+                            <td class="small"><?= e((string) ($entry['actor_name'] ?? 'system')) ?></td>
                             <td class="d-none d-md-table-cell small text-muted">
                                 <?= e(mb_strimwidth((string) ($entry['description'] ?? ''), 0, 70, '…')) ?>
                             </td>
