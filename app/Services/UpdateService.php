@@ -283,9 +283,14 @@ final class UpdateService
                 @unlink($archivePath);
                 $this->maintenance->disable();
                 $this->releaseLock();
-                $this->updates->finish($logId, 'success', [
+                // Recorded as "testing", never "success": a dry run deploys
+                // nothing, and lastSuccessful() is what decides which commit
+                // is installed. Marking it success would make the next check
+                // report "up to date" over unchanged files.
+                $this->updates->finish($logId, 'testing', [
                     'steps_log'   => $steps,
                     'health_result' => ['dry_run' => true],
+                    'error_message' => null,
                 ]);
                 return [
                     'ok'          => true,
