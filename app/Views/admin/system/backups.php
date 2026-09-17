@@ -65,15 +65,12 @@ $mb = static fn (int $bytes): string => $bytes <= 0 ? '—' : number_format($byt
                                             </button>
                                         </form>
                                         <?php if (in_array((string) $backup['type'], ['database', 'full', 'update'], true)): ?>
-                                            <form method="post"
-                                                  action="<?= e(url('admin/system/backups/' . $backup['id'] . '/restore')) ?>">
-                                                <?= csrf_field() ?>
-                                                <button class="btn btn-sm btn-outline-warning" type="submit"
-                                                        data-sk-confirm="Restore this backup? Current data in the restored tables is replaced."
-                                                        aria-label="Restore">
-                                                    <i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i>
-                                                </button>
-                                            </form>
+                                            <button class="btn btn-sm btn-outline-warning" type="button"
+                                                    data-bs-toggle="collapse"
+                                                    data-bs-target="#restore-<?= (int) $backup['id'] ?>"
+                                                    aria-label="Restore">
+                                                <i class="bi bi-arrow-counterclockwise" aria-hidden="true"></i>
+                                            </button>
                                         <?php endif; ?>
                                     <?php endif; ?>
                                     <form method="post" action="<?= e(url('admin/system/backups/' . $backup['id'])) ?>">
@@ -87,6 +84,36 @@ $mb = static fn (int $bytes): string => $bytes <= 0 ? '—' : number_format($byt
                                 </div>
                             </td>
                         </tr>
+                        <?php if (in_array((string) $backup['type'], ['database', 'full', 'update'], true)
+                            && (string) $backup['status'] === 'completed'): ?>
+                            <tr class="collapse" id="restore-<?= (int) $backup['id'] ?>">
+                                <td colspan="5" class="bg-body-tertiary">
+                                    <form class="row g-2 align-items-end" method="post"
+                                          action="<?= e(url('admin/system/backups/' . $backup['id'] . '/restore')) ?>">
+                                        <?= csrf_field() ?>
+                                        <div class="col-12">
+                                            <p class="small mb-1">
+                                                Restoring <strong><?= e((string) $backup['name']) ?></strong> replaces the
+                                                current contents of the tables in that backup. A snapshot of the present
+                                                state is taken first, and the site goes into maintenance mode while it runs.
+                                            </p>
+                                        </div>
+                                        <div class="col-12 col-sm-5">
+                                            <label class="form-label small mb-1" for="confirm-<?= (int) $backup['id'] ?>">
+                                                Type RESTORE to confirm
+                                            </label>
+                                            <input class="form-control form-control-sm" type="text" required
+                                                   id="confirm-<?= (int) $backup['id'] ?>" name="confirm"
+                                                   placeholder="RESTORE" autocomplete="off">
+                                        </div>
+                                        <div class="col-12 col-sm-4">
+                                            <button class="btn btn-sm btn-warning" type="submit"
+                                                    data-sk-loading="Restoring…">Restore this backup</button>
+                                        </div>
+                                    </form>
+                                </td>
+                            </tr>
+                        <?php endif; ?>
                     <?php endforeach; ?>
                     <?php if ($backups === []): ?>
                         <tr><td colspan="5" class="text-muted small">No backups yet.</td></tr>
