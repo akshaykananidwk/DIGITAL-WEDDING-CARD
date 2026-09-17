@@ -134,6 +134,8 @@ $router->group('', ['installed', 'maintenance', 'auth'], static function ($route
     $router->post('/builder/{id:\d+}/duplicate', [Web\BuilderController::class, 'duplicate'], ['csrf']);
     $router->delete('/builder/{id:\d+}', [Web\BuilderController::class, 'destroy'], ['csrf']);
     $router->get('/builder/{id:\d+}/preview', [Web\BuilderController::class, 'preview'], [], 'builder.preview');
+    // The builder posts unsaved values in so the live preview comes from the same engine.
+    $router->post('/builder/{id:\d+}/preview', [Web\BuilderController::class, 'preview'], ['csrf']);
     $router->get('/builder/{id:\d+}/share', [Web\BuilderController::class, 'share'], [], 'builder.share');
 
     // ---- Profile ----

@@ -14,7 +14,7 @@ $view->extend('layouts.app');
             <div class="col-12 col-lg-6">
                 <p class="sk-hero__eyebrow"><i class="bi bi-stars" aria-hidden="true"></i> <?= e(__('home.eyebrow')) ?></p>
                 <h1 class="sk-hero__title"><?= e(__('home.hero_title')) ?></h1>
-                <p class="sk-hero__lead"><?= e(__('home.hero_lead')) ?></p>
+                <p class="sk-hero__lede"><?= e(__('home.hero_lead')) ?></p>
 
                 <form class="sk-hero__search" method="get" action="<?= e(url('templates')) ?>" role="search">
                     <label class="visually-hidden" for="hero-q"><?= e(__('templates.search')) ?></label>
@@ -80,8 +80,8 @@ $view->extend('layouts.app');
         ];
         foreach ($steps as $index => [$icon, $title, $text]): ?>
             <div class="col-12 col-sm-6 col-lg-3">
-                <div class="sk-step h-100">
-                    <span class="sk-step__num"><?= $index + 1 ?></span>
+                <div class="sk-howto h-100">
+                    <span class="sk-howto__num"><?= $index + 1 ?></span>
                     <i class="bi <?= e($icon) ?>" aria-hidden="true"></i>
                     <h3 class="h6 mt-2 mb-1"><?= e($title) ?></h3>
                     <p class="small text-muted mb-0"><?= e($text) ?></p>
