@@ -274,7 +274,13 @@ final class AnalyticsRepository extends BaseRepository
             $shares[] = (int) ($byDate[$date]['shares'] ?? 0);
             $downloads[] = (int) ($byDate[$date]['downloads'] ?? 0);
         }
-        return compact('labels', 'views', 'unique', 'shares', 'downloads');
+        return [
+            'labels'       => $labels,
+            'views'        => $views,
+            'unique_views' => $unique,
+            'shares'       => $shares,
+            'downloads'    => $downloads,
+        ];
     }
 
     /** Platform-wide series for the admin dashboard. */

@@ -29,6 +29,7 @@ return [
         'logout'      => 'Sign out',
         'create'      => 'Create invitation',
         'help'        => 'Help',
+        'privacy' => 'Privacy',
     ],
 
     'auth' => [
@@ -64,6 +65,12 @@ return [
         'empty_title'    => 'No invitations yet',
         'empty_body'     => 'Pick a template and your first invitation will be ready in a few minutes.',
         'quick_actions'  => 'Quick actions',
+        'subtitle' => 'Your invitations, responses and reach at a glance',
+        'unread_rsvp' => ':count new RSVP responses are waiting for you.',
+        'published_count' => ':count live',
+        'drafts' => ':count drafts',
+        'notifications' => 'Notifications',
+        'no_notifications' => 'Nothing new right now.',
     ],
 
     'builder' => [
@@ -93,6 +100,7 @@ return [
         'ai_generating'   => 'Composing your wording…',
         'photo_hint'      => 'Drag to reorder. JPG, PNG or WebP up to :size.',
         'music_hint'      => 'Guests can always mute the music.',
+        'delete_confirm' => 'Delete this invitation? This cannot be undone.',
     ],
 
     'invite' => [
@@ -147,6 +155,10 @@ return [
             'engagement' => 'Engagement',
             'pooja'      => 'Pooja',
         ],
+        'locked_title' => 'This invitation is private',
+        'locked_text' => 'Enter the passphrase the host shared with you.',
+        'password' => 'Passphrase',
+        'unlock' => 'Open invitation',
     ],
 
     'share' => [
@@ -166,6 +178,77 @@ return [
         'scan_caption'      => 'Scan to open the digital invitation',
         'our_moments'       => 'Our Moments',
         'watermark'         => 'Created with :app',
+    ],
+
+    'home' => [
+        'eyebrow' => 'Free digital invitations for every Indian occasion',
+        'hero_title' => 'Create a beautiful digital Kankotri in minutes',
+        'hero_lead' => 'Pick a design, fill in your details, and share a living invitation card on WhatsApp — with RSVP, map, countdown, photo gallery and printable PDF.',
+        'search_placeholder' => 'Wedding, Ganesh Sthapana, shop opening…',
+        'cta_primary' => 'Create my invitation',
+        'cta_secondary' => 'Browse templates',
+        'stat_templates' => 'Designs',
+        'stat_animated' => 'Animated cards',
+        'stat_languages' => 'Languages',
+        'stat_price' => 'To get started',
+        'how_title' => 'How it works',
+        'how_subtitle' => 'Four steps from idea to invitation',
+        'step1_title' => 'Choose a design',
+        'step1_text' => 'Filter by occasion, language, colour or animation and preview any card full screen.',
+        'step2_title' => 'Add your details',
+        'step2_text' => 'A guided form asks only for what your card needs — names, events, venue, photos.',
+        'step3_title' => 'Share the link',
+        'step3_text' => 'One tap sends a ready-written WhatsApp message, or share the QR code and PDF.',
+        'step4_title' => 'Track responses',
+        'step4_text' => 'See views, shares and RSVP counts privately in your dashboard.',
+        'featured_title' => 'Featured designs',
+        'featured_subtitle' => 'Hand-picked cards our couples love',
+        'occasions_title' => 'Browse by occasion',
+        'occasions_subtitle' => 'From lagna and pooja to shop openings and birthdays',
+        'features_title' => 'Everything included',
+        'features_subtitle' => 'No add-ons, no paywalls, no watermarks',
+        'f_lang_title' => 'Gujarati, Hindi, English',
+        'f_lang_text' => 'Full Unicode support, so your card reads exactly as you wrote it.',
+        'f_mobile_title' => 'Made for mobile',
+        'f_mobile_text' => 'Guests open your card on a phone — so that is what we design for first.',
+        'f_share_title' => 'WhatsApp ready',
+        'f_share_text' => 'A polished message is composed for you, ready to forward to every group.',
+        'f_qr_title' => 'QR codes',
+        'f_qr_text' => 'Print-quality QR for the venue, the printed card or the RSVP desk.',
+        'f_pdf_title' => 'Printable PDF',
+        'f_pdf_text' => 'Download an A4 or mobile PDF with your Gujarati text intact.',
+        'f_rsvp_title' => 'RSVP tracking',
+        'f_rsvp_text' => 'Collect attendance, guest counts and messages in one list.',
+        'f_analytics_title' => 'Private analytics',
+        'f_analytics_text' => 'Views, shares and downloads — counted without tracking your guests.',
+        'f_privacy_title' => 'Privacy first',
+        'f_privacy_text' => 'No third-party trackers, no ads, and you can delete everything any time.',
+        'latest_title' => 'Newest designs',
+        'final_cta_title' => 'Your invitation is ready to be made',
+        'final_cta_text' => 'Everything on this page is free while we grow. No card details, no trial period.',
+    ],
+
+    'profile' => [
+        'details' => 'Your details',
+        'avatar' => 'Profile photo',
+        'city' => 'City',
+        'password' => 'Password',
+        'current_password' => 'Current password',
+        'new_password' => 'New password',
+        'change_password' => 'Change password',
+        'delete_account' => 'Delete my account',
+        'delete_warning' => 'This permanently removes your invitations, photos and RSVP responses. It cannot be undone.',
+        'delete_confirm' => 'Delete your account and everything in it?',
+        'type_delete' => 'Type DELETE',
+        'account' => 'Account',
+        'member_since' => 'Member since',
+        'email_verified' => 'Email verified',
+        'storage' => 'Storage used',
+        'plan_limits' => 'Plan limits',
+        'your_data' => 'Your data',
+        'export' => 'Download my data',
+        'export_hint' => 'A JSON copy of your account, invitations and responses.',
+        'api_tokens' => 'API tokens',
     ],
 
     'templates' => [
@@ -188,6 +271,10 @@ return [
         'none_found'    => 'No templates match those filters yet.',
         'results'       => ':count templates',
         'ai_suggested'  => 'Suggested for you',
+        'pages' => 'pages',
+        'uses' => 'uses',
+        'use' => 'Use this',
+        'details' => 'Details',
     ],
 
     'analytics' => [
@@ -209,6 +296,8 @@ return [
         'no_data'      => 'No activity yet. Share your invitation to see numbers here.',
         'export'       => 'Export CSV',
         'privacy_note' => 'We never store IP addresses or personal data about your guests.',
+        'top_invitations' => 'Most viewed',
+        'basic_only' => 'Detailed device and referrer reports are switched off for now.',
     ],
 
     'rsvp' => [
@@ -220,6 +309,7 @@ return [
         'empty'     => 'No responses yet.',
         'export'    => 'Export CSV',
         'mark_read' => 'Mark all as read',
+        'new' => 'new',
     ],
 
     'common' => [
@@ -250,6 +340,8 @@ return [
         'actions'    => 'Actions',
         'status'     => 'Status',
         'total'      => 'Total',
+        'continue' => 'Continue',
+        'view_all' => 'View all',
     ],
 
     'errors' => [
