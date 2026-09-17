@@ -27,9 +27,9 @@ php bin/console health       # the 23 runtime checks
 ■ PDF, QR, calendar and sharing               60 checks    170 ms
 ■ Uploads and the media library               33 checks    173 ms
 ■ AI generator and recommender                38 checks     13 ms
-■ System, installer, backups and updates     152 checks  6 113 ms
+■ System, installer, backups and updates     159 checks  5 747 ms
 ──────────────────────────────────────────────────────────────────
-All 543 checks passed in 18.6 s across 9 cases
+All 550 checks passed in 17.8 s across 9 cases
 ```
 
 The runner has no dependencies — no Composer, no PHPUnit, no Node — so it runs on the
@@ -196,6 +196,8 @@ files but left the database alone. Both are covered by the suite now.
 |---|---|
 | PHP 8.4 | Reference host. No deprecations emitted (two session INI settings are now applied only below 8.4) |
 | PHP 8.1–8.4 | 8.1 is the floor: `readonly` promoted properties, `new` in initialisers and `array_is_list()` are used throughout, so 8.0 cannot parse the code. `app/bootstrap.php` says so in plain text before any class loads, and `min_php` in `version.json` is enforced by the installer and the updater. Verified on 8.4.19. |
+| Reported host reproduced | The failing host's exact restriction (`/www/wwwroot/WEDDING.AKDWK.in/:/tmp/`, trailing slashes, parent directory denied) was mirrored at `/opt/site/WEDDING.AKDWK.in`. Before the fix: 500 on every request. After: requirements pass and name the restriction, the installer completes, secrets land in `storage/config/app.php` (0640, deny-all `.htaccess`), `/install` returns 403, 32 URLs answer as expected — home, gallery, invitation, A4 and mobile PDF, card and venue QR, ICS, sitemap, manifest, service worker, 12 signed-in and admin screens — a full backup succeeds, `storage/config/app.php` and `storage/logs/` are not served, and nothing is logged as an error. |
+| Secret exposure check | **System → Health** requests the secret file's own URL on each run: a 200 returning `<?php` source is **critical**, an executed (empty) body or any 4xx is a pass, and a host where the request cannot be made (loopback, no outbound HTTP) is reported as unverified rather than as a pass. Confirmed on the mirrored host, which reports the unverified case honestly. |
 | `open_basedir` hosts | Reproduced with `php -d open_basedir=<docroot>`: the secrets probe above the web root raised a warning, which this application treats as fatal, so every page — including `/install` — returned 500. Paths outside the restriction are now skipped rather than probed, secrets fall back to `storage/config/`, and the installer reports the restriction. |
 | MariaDB 10.11 | Reference database |
 | MySQL 5.7+ / MariaDB 10.3+ | Supported; `utf8mb4` throughout, `FULLTEXT` used where available |

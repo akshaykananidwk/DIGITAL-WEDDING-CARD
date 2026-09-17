@@ -87,7 +87,7 @@ php bin/console pdf:test
 ## Tests
 
 ```bash
-php tests/run.php                  # 543 checks, 9 cases, no dependencies
+php tests/run.php                  # 550 checks, 9 cases, no dependencies
 php tests/run.php Security         # one case
 php tests/run.php --json           # machine readable
 ```

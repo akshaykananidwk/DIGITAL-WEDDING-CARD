@@ -39,6 +39,7 @@ final class SystemTest extends TestCase
         $this->localisation();
         $this->cache();
         $this->health();
+        $this->secretExposure();
         $this->maintenance();
         $this->backups();
         $this->cron();
@@ -383,6 +384,47 @@ final class SystemTest extends TestCase
         $this->assertContains('Health: PHP version is reported', PHP_VERSION, (string) $meta['php_version']);
         $this->assertSame('Health: the timezone is Asia/Kolkata', 'Asia/Kolkata', (string) $meta['timezone']);
         $this->assertGreaterThan('Health: the database size is measured', 0, (float) $meta['db_size']);
+    }
+
+    /**
+     * The judgement behind the "are my credentials being served?" check.
+     *
+     * Nginx and LiteSpeed ignore .htaccess, so when the secret file has to
+     * live inside the web root the health screen asks for it over HTTP rather
+     * than assuming a deny rule exists. What counts as exposure is decided
+     * here, so it is checked here too.
+     */
+    private function secretExposure(): void
+    {
+        $source = "<?php\n\nreturn ['db' => ['password' => 'hunter2']];\n";
+
+        $this->assertTrue(
+            'Exposure: a 200 that returns the PHP source is a leak',
+            HealthService::exposesSource(200, $source)
+        );
+        $this->assertFalse(
+            'Exposure: a 200 with an empty body means the server executed it',
+            HealthService::exposesSource(200, '')
+        );
+        $this->assertFalse('Exposure: a 403 is a refusal', HealthService::exposesSource(403, $source));
+        $this->assertFalse('Exposure: a 404 is a refusal', HealthService::exposesSource(404, ''));
+        $this->assertFalse(
+            'Exposure: a 200 page that merely mentions PHP is not the file',
+            HealthService::exposesSource(200, '<h1>Not found</h1><p>built with php</p>')
+        );
+
+        // And the live check on this host: the secret file is outside the web
+        // root, so there is nothing to serve and the check passes outright.
+        $checks = [];
+        foreach ((new HealthService())->run('test')['checks'] as $check) {
+            $checks[(string) $check['key']] = $check;
+        }
+        $this->assertTrue('Exposure: the secret storage check reports', isset($checks['secrets']));
+        $this->assertSame(
+            'Exposure: secrets outside the web root pass',
+            'healthy',
+            (string) ($checks['secrets']['status'] ?? '')
+        );
     }
 
     private function maintenance(): void

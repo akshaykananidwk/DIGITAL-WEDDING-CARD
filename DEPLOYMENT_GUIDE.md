@@ -121,6 +121,30 @@ server {
 }
 ```
 
+### aaPanel and similar panels
+
+A panel writes its own server block, so the deny rules above are not there
+unless you add them. In aaPanel: **Website → your site → Config File**, then paste
+these two lines inside the `server { … }` block and reload:
+
+```nginx
+location ~ ^/(app|database|storage|tests|bin|docs)/ { deny all; }
+location ~ /\.(env|git|htaccess) { deny all; }
+```
+
+This matters most when `open_basedir` keeps the secret file inside the web root:
+`storage/config/app.php` then holds the database password and the application key,
+and the deny rule is what stands between it and the internet. **System → Health**
+requests that URL over HTTP on every run and reports **critical** if the source
+comes back, so you do not have to take the configuration on trust.
+
+Two panel settings decide the rest:
+
+| Setting | Where | Why |
+|---|---|---|
+| PHP version 8.1+ | Website → PHP version | 8.0 cannot parse the code |
+| `open_basedir` | Website → Settings (aaPanel calls it *Anti-XSS* / *Directory protection*) | Leaving it at the document root is fine; the application detects it and keeps secrets in `storage/config`. Adding `/www/wwwroot/.invitation-secrets/` lets it store them above the web root instead, which is stronger. |
+
 ---
 
 ## HTTPS

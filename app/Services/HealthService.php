@@ -378,9 +378,78 @@ final class HealthService
             return $this->check('secrets', 'Secret storage', self::OK,
                 'Credentials are stored outside the web root.');
         }
+        /*
+         * Inside the web root, a deny rule is the only thing standing between
+         * the credentials and the internet - and Nginx and LiteSpeed ignore
+         * .htaccess, so on those the rule has to be in the server config. That
+         * is worth proving rather than assuming, so the file is requested over
+         * HTTP the way a stranger would.
+         */
+        $relative = ltrim(str_replace(ROOT_PATH, '', $file), '/\\');
+        $exposure = $this->fetchOwnUrl(Url::to($relative));
+
+        if ($exposure['served'] === true) {
+            return $this->check('secrets', 'Secret storage', self::CRITICAL,
+                'Credentials in storage/config are being served over HTTP at /' . $relative
+                . ' - deny /storage/ in the server configuration now, then rotate the database '
+                . 'password and the application key.');
+        }
+        if ($exposure['served'] === null) {
+            return $this->check('secrets', 'Secret storage', self::WARNING,
+                'Credentials are stored in storage/config. This host could not check whether '
+                . '/' . $relative . ' is reachable (' . $exposure['message'] . '); confirm it '
+                . 'returns 403 or 404, and deny /storage/ in the server configuration if it does not.');
+        }
         return $this->check('secrets', 'Secret storage', self::WARNING,
-            'Credentials are stored in storage/config, which is protected by .htaccess. '
+            'Credentials are stored in storage/config, confirmed unreachable over HTTP. '
             . 'Moving them outside the web root is stronger.');
+    }
+
+    /**
+     * Request one of our own URLs and report whether its body came back.
+     *
+     * Goes through the shared HttpClient so there is one outbound path and its
+     * SSRF guard stays intact - which also means a site served from localhost
+     * or a private address cannot be checked this way, and that is reported as
+     * "could not determine" rather than as a pass.
+     *
+     * @return array{served:bool|null,message:string} served: true exposed,
+     *         false denied, null could not be determined
+     */
+    private function fetchOwnUrl(string $url): array
+    {
+        if (!HttpClient::isAvailable()) {
+            return ['served' => null, 'message' => 'this host has no outbound HTTP'];
+        }
+
+        try {
+            $response = (new HttpClient(5, 5))->get($url);
+        } catch (\Throwable $e) {
+            return ['served' => null, 'message' => $e->getMessage()];
+        }
+
+        $status = (int) ($response['status'] ?? 0);
+        if ($status === 0) {
+            return ['served' => null, 'message' => (string) ($response['error'] ?? 'no response')];
+        }
+
+        return [
+            'served'  => self::exposesSource($status, (string) ($response['body'] ?? '')),
+            'message' => 'HTTP ' . $status,
+        ];
+    }
+
+    /**
+     * Did that response hand out PHP source?
+     *
+     * A 200 only means exposure if the file's own text comes back. A server
+     * that executes the file returns an empty body, which discloses nothing,
+     * and anything other than 200 is a refusal. Public so the decision can be
+     * tested without a live host.
+     */
+    public static function exposesSource(int $status, string $body): bool
+    {
+        return $status === 200 && str_contains($body, '<?php');
     }
 
     private function checkPdfEngine(): array
