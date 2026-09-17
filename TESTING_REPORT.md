@@ -82,7 +82,10 @@ status:
 
 Static assets, the manifest and the service worker were fetched and returned with the
 right content types (`text/css`, `application/javascript`, `font/ttf`,
-`application/manifest+json`, `image/png`).
+`application/manifest+json`, `image/png`). `/service-worker.js` has its own route, so
+it works on hosts that send unknown paths to the front controller, and the built-in
+PHP server now serves static files too — `php -S localhost:8000 index.php` is a usable
+development setup.
 
 Application internals stay unreachable: `app/*`, `database/*`, `storage/*`, `tests/*`,
 `bin/*`, dotfiles, `version.json`, `README.md` and a traversal to the secret file all
@@ -123,6 +126,7 @@ produced file, not just by a 200 response.
 | Cron | `cleanup` and `analytics` ran and recorded their runs; an unknown task is refused |
 | Backups | Database (518 KB) and full (1.8 MB) created; checksum verified; restore put a tampered setting and a deleted RSVP row back |
 | Email | `log` driver writes to `storage/logs/mail-*.log`; SMTP path exercised through the test-send screen |
+| JSON API | Token issued by `POST /auth/login`; `GET /auth/me`, `/templates`, `/templates/{slug}` (with field definitions), `/categories`, `/invitations`, `/analytics`; `POST /invitations` created a draft, `PUT` updated it, `POST …/publish` published it, `DELETE` removed it; `POST /rsvp/{slug}` recorded a guest response; a missing or unknown token returns 401 |
 
 ---
 
@@ -209,19 +213,67 @@ files but left the database alone. Both are covered by the suite now.
 Listing queries are index-backed and paginated, and the catalogue never loads more
 than one page of rows: the 3 ms figure is the same at 51 templates and at 1,051.
 
-## 9. Accessibility and responsive behaviour
+## 9. Browser rendering, responsive layout and accessibility
 
-Checked by hand at 360 px, 768 px, 1024 px and 1440 px.
+Real pages were rendered in Chromium (`tests/browser/check.mjs`, optional) and
+inspected programmatically — not eyeballed.
 
-- Every form control has a label; icon-only buttons carry `aria-label`.
-- A skip link, visible focus rings on every interactive element, and a logical tab order.
+**49 renders, 0 findings:**
+
+| Sweep | Pages | Viewports |
+|---|---|---|
+| Public | home, gallery, categories, login, register, a CMS page | 360, 768, 1024, 1440 px |
+| Signed in and admin | 25 pages including every builder step, RSVP, both analytics screens, the field builder, system, health, updates and cron | 390 px (phone) |
+
+Checked on every render: HTTP status, Content-Security-Policy violations, console and
+page errors, horizontal scrolling (document scroll width against client width, with the
+offending element named), form controls without an accessible name, icon-only controls
+without one, images without `alt`, whether the application's JavaScript ran, and
+whether every declared chart actually drew.
+
+This is what found the most serious defect in the whole build: `'strict-dynamic'` in
+`script-src` disables host allow-listing by design, including `'self'`, so **every
+external script tag was blocked** — a production deployment would have run no
+JavaScript at all. It also found asset URLs breaking on a hostname that differs from
+the configured site URL, two pages scrolling sideways at 390 px, and three sets of
+icon-only controls without an `aria-label`. All fixed, all re-verified.
+
+Also confirmed in the browser:
+
 - The builder reflows as specified: form left / preview right on desktop, preview on
   top and controls beneath on a phone.
-- Tables scroll horizontally inside a container rather than breaking the layout.
+- Charts render on the dashboard, both analytics screens and the admin dashboard.
+- Tables scroll inside their container rather than widening the page.
+- A skip link is present, focus rings are visible, and headings are ordered.
 - Animations respect `prefers-reduced-motion`, and every animated card can be skipped.
-- Colour contrast meets WCAG AA for body text against the cream background.
 
-## 10. Known limitations
+## 10. Defects found and fixed during testing
+
+Testing that finds nothing has usually not been done. These were found by running the
+application, and each one is now covered by a check that fails if it comes back.
+
+| # | Defect | Found by |
+|---|---|---|
+| 1 | `script-src 'strict-dynamic'` blocked every external script, so production would have run no JavaScript | Browser render |
+| 2 | Asset URLs came from the configured site URL, so any other hostname broke CSS, images and fonts | Browser render |
+| 3 | The router dropped a placeholder pattern at its first `}`, so `/i/{code:…{4,12}}` and `/lang/{locale:[a-z]{2}}` never matched | HTTP sweep |
+| 4 | `Request::input()` ignored route parameters, so every `/{id}/` route read id 0 and returned 404 | HTTP sweep |
+| 5 | Bearer-token API writes were rejected with 419 by the CSRF middleware | API exercise |
+| 6 | The AI fact guard fell back to unfiltered text when it had dropped every sentence | Automated suite |
+| 7 | The fact guard deleted correctly translated dates, because Indic and Western digits were compared literally | Automated suite |
+| 8 | A rollback restored the files but not the database — the pre-update dump path was never stored | Update exercise |
+| 9 | A dry run was recorded as a successful update, so the next check reported "up to date" over unchanged files | Update exercise |
+| 10 | `Cache::put()` treated a zero or negative TTL as "never expires" | Automated suite |
+| 11 | A completed dry run looked like a stuck update to the health check | Automated suite |
+| 12 | `php -S` served no static assets; `/service-worker.js` 404'd behind a front controller | HTTP sweep |
+| 13 | Ordinary 404s were logged as CRITICAL with a stack trace | Log review |
+| 14 | Two session INI settings deprecated in PHP 8.4 were still being set | Log review |
+| 15 | Inline code chips did not wrap, so long paths scrolled the page sideways on a phone | Browser render |
+| 16 | Icon-only controls in three places had a `title` but no `aria-label` | Browser render |
+| 17 | Column mismatches in new views (template previews, health timestamps, RSVP read flag, notification links) | HTTP sweep |
+| 18 | `X-Powered-By` was only removed by `.htaccess`, so hosts without `mod_headers` advertised the PHP version | Header review |
+
+## 11. Known limitations
 
 Stated plainly rather than left for someone to discover.
 
