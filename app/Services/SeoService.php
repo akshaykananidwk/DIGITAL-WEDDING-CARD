@@ -95,6 +95,105 @@ final class SeoService
         return $this;
     }
 
+    /**
+     * A breadcrumb trail, as JSON-LD.
+     *
+     * Google shows the trail in place of the raw URL, which is worth a lot on
+     * a deep catalogue: "Home > Kankotri > Gujarati Wedding" reads better in a
+     * result than a slug.
+     *
+     * @param array<int,array{name:string,url:string}> $trail
+     */
+    public function breadcrumbs(array $trail): self
+    {
+        $items = [];
+        foreach (array_values($trail) as $position => $crumb) {
+            $items[] = [
+                '@type'    => 'ListItem',
+                'position' => $position + 1,
+                'name'     => (string) $crumb['name'],
+                'item'     => (string) $crumb['url'],
+            ];
+        }
+        if ($items === []) {
+            return $this;
+        }
+
+        return $this->structuredData([
+            '@context'        => 'https://schema.org',
+            '@type'           => 'BreadcrumbList',
+            'itemListElement' => $items,
+        ]);
+    }
+
+    /**
+     * A list of what this page shows, as JSON-LD.
+     *
+     * @param array<int,array{name:string,url:string}> $entries
+     */
+    public function itemList(array $entries, string $name = ''): self
+    {
+        $items = [];
+        foreach (array_values($entries) as $position => $entry) {
+            $items[] = [
+                '@type'    => 'ListItem',
+                'position' => $position + 1,
+                'name'     => (string) $entry['name'],
+                'url'      => (string) $entry['url'],
+            ];
+        }
+        if ($items === []) {
+            return $this;
+        }
+
+        $payload = [
+            '@context'        => 'https://schema.org',
+            '@type'           => 'ItemList',
+            'numberOfItems'   => count($items),
+            'itemListElement' => $items,
+        ];
+        if ($name !== '') {
+            $payload['name'] = $name;
+        }
+
+        return $this->structuredData($payload);
+    }
+
+    /**
+     * Questions and answers, as JSON-LD.
+     *
+     * The answers have to be the ones actually on the page - Google's
+     * guideline, and the only honest way to do it - so the caller passes the
+     * same text it renders.
+     *
+     * @param array<int,array{question:string,answer:string}> $pairs
+     */
+    public function faq(array $pairs): self
+    {
+        $entries = [];
+        foreach ($pairs as $pair) {
+            $question = trim((string) $pair['question']);
+            $answer = trim((string) $pair['answer']);
+            if ($question === '' || $answer === '') {
+                continue;
+            }
+            $entries[] = [
+                '@type'          => 'Question',
+                'name'           => $question,
+                'acceptedAnswer' => ['@type' => 'Answer', 'text' => $answer],
+            ];
+        }
+        if ($entries === []) {
+            return $this;
+        }
+
+        return $this->structuredData([
+            '@context'   => 'https://schema.org',
+            '@type'      => 'FAQPage',
+            'mainEntity' => $entries,
+        ]);
+    }
+
     // ------------------------------------------------------------------
     //  Presets
     // ------------------------------------------------------------------
@@ -120,7 +219,44 @@ final class SeoService
             ],
         ]);
 
+        // Who runs the site. Needed for a knowledge panel and for the logo to
+        // appear beside the results.
+        $seo->structuredData(array_filter([
+            '@context' => 'https://schema.org',
+            '@type'    => 'Organization',
+            'name'     => (string) (setting('site_name') ?: config('app.name')),
+            'url'      => Url::base(),
+            'logo'     => ($logo = (string) setting('brand_logo', '')) !== ''
+                ? Url::to(ltrim($logo, '/'))
+                : Url::to('assets/img/apple-touch-icon.png'),
+            'areaServed' => 'IN',
+        ]));
+
+        $seo->faq(self::homeFaq());
+
         return $seo;
+    }
+
+    /**
+     * The questions the home page answers, in the reader's language.
+     *
+     * Kept here beside the structured data so the two cannot drift: the page
+     * renders this list and the JSON-LD describes the same list.
+     *
+     * @return array<int,array{question:string,answer:string}>
+     */
+    public static function homeFaq(): array
+    {
+        $out = [];
+        foreach (['free', 'whatsapp', 'languages', 'rsvp', 'pdf', 'time'] as $key) {
+            $question = Lang::get('faq.' . $key . '_q');
+            $answer = Lang::get('faq.' . $key . '_a');
+            if ($question !== 'faq.' . $key . '_q' && $answer !== 'faq.' . $key . '_a') {
+                $out[] = ['question' => $question, 'answer' => $answer];
+            }
+        }
+
+        return $out;
     }
 
     public static function forTemplate(array $template): self
@@ -128,12 +264,17 @@ final class SeoService
         $name = (string) $template['name'];
         $description = (string) ($template['meta_description'] ?: $template['description'] ?: '');
         if ($description === '') {
-            $description = 'Create your own ' . $name . ' invitation card online, free. '
-                . 'Customise the names, dates and photos, then share on WhatsApp.';
+            $description = Lang::get('seo.template_description', ['name' => $name]);
         }
 
+        /*
+         * The title carries the phrase people actually type - "digital
+         * kankotri", "invitation card" - in the language they are browsing in,
+         * because a title that only repeats the design's own name matches
+         * nothing anybody searches for.
+         */
         $seo = self::make()
-            ->title((string) ($template['meta_title'] ?: $name))
+            ->title((string) ($template['meta_title'] ?: Lang::get('seo.template_title', ['name' => $name])))
             ->description($description)
             ->canonical(Url::to('templates/' . $template['slug']))
             ->type('article');
@@ -171,9 +312,9 @@ final class SeoService
         $source = $subcategory ?? $category;
 
         return self::make()
-            ->title((string) ($source['meta_title'] ?: $name . ' invitation cards'))
+            ->title((string) ($source['meta_title'] ?: Lang::get('seo.category_title', ['name' => $name])))
             ->description((string) ($source['meta_description'] ?: $source['description']
-                ?: 'Browse free ' . $name . ' invitation card designs. Customise and share in minutes.'))
+                ?: Lang::get('seo.category_description', ['name' => $name])))
             ->canonical(Url::to($path))
             ->withLocaleAlternates($path);
     }

@@ -452,4 +452,29 @@ return [
             'sep' => 'September', 'oct' => 'October', 'nov' => 'November', 'dec' => 'December',
         ],
     ],
+
+    'faq' => [
+        'title'        => 'Common questions',
+        'free_q'       => 'Is the digital kankotri really free?',
+        'free_a'       => 'Yes. Every template, the WhatsApp sharing link, the QR code, the PDF download and the RSVP list are free to use. There is no watermark on your card and no per-guest charge.',
+        'whatsapp_q'   => 'How do I send the invitation on WhatsApp?',
+        'whatsapp_a'   => 'Every card gets its own link, such as /invite/rahul-weds-priya. The share step writes the WhatsApp message for you with the names, date and venue; you tap once to send it to a chat or a group.',
+        'languages_q'  => 'Can I make the card in Gujarati or Hindi?',
+        'languages_a'  => 'Yes. The card, the programme, the countdown and the PDF all render in Gujarati, Hindi or English, with proper Unicode fonts, so a Gujarati kankotri reads correctly on every phone.',
+        'rsvp_q'       => 'How do guests reply?',
+        'rsvp_a'       => 'Each card carries an RSVP form. Replies arrive in your dashboard with the guest count, and you can export the whole list as a CSV for the caterer.',
+        'pdf_q'        => 'Can I print the card or send a PDF?',
+        'pdf_a'        => 'Yes. Download an A4 PDF for printing or a mobile-sized PDF to send as a file. The Gujarati and Hindi text stays sharp because the fonts are embedded.',
+        'time_q'       => 'How long does it take to make one?',
+        'time_a'       => 'About five minutes. Pick a design, fill in the eight-step form, add photos if you want them, then publish and share the link.',
+    ],
+
+    'seo' => [
+        // The phrases people type. Kept short enough that Google does not cut
+        // the title, and never repeated for the sake of repetition.
+        'template_title'       => '{name} - digital kankotri & invitation card template',
+        'template_description' => 'Make your own {name} invitation card online, free. Fill in the names, dates and photos, then share the link on WhatsApp, download a PDF and collect RSVPs.',
+        'category_title'       => '{name} invitation cards - free digital designs',
+        'category_description' => 'Free {name} invitation card designs you can edit online: add your names and dates, share the link on WhatsApp, print a PDF and collect RSVPs. Gujarati, Hindi and English.',
+    ],
 ];

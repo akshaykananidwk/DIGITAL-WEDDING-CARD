@@ -49,6 +49,24 @@ final class Str
         return $out;
     }
 
+    /**
+     * Trim to a length without cutting a word in half and without adding an
+     * ellipsis - for a page title, where "invitation ca" looks broken and
+     * "invitation…" is noise.
+     */
+    public static function limitWords(string $value, int $limit): string
+    {
+        $value = trim($value);
+        if (mb_strlen($value) <= $limit) {
+            return $value;
+        }
+
+        $cut = mb_substr($value, 0, $limit);
+        $space = mb_strrpos($cut, ' ');
+
+        return rtrim($space === false ? $cut : mb_substr($cut, 0, $space), " -,&");
+    }
+
     public static function limit(string $value, int $limit = 100, string $end = '...'): string
     {
         if (mb_strlen($value, 'UTF-8') <= $limit) {

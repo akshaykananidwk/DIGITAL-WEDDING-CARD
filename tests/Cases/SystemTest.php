@@ -16,6 +16,7 @@ use App\Services\BackupService;
 use App\Services\CronService;
 use App\Services\GitHubService;
 use App\Services\HealthService;
+use App\Services\SeoService;
 use App\Services\InstallService;
 use App\Services\MaintenanceService;
 use App\Services\SitemapService;
@@ -572,6 +573,142 @@ final class SystemTest extends TestCase
         $robots = $sitemap->robots();
         $this->assertContains('SEO: robots.txt names the sitemap', 'Sitemap:', $robots);
         $this->assertContains('SEO: robots.txt keeps crawlers out of /admin', 'Disallow: /admin', $robots);
+
+        $this->structuredData();
+    }
+
+    /**
+     * The JSON-LD each kind of page carries.
+     *
+     * Breadcrumbs, a list of what the page shows, the organisation and the
+     * questions the home page answers: these are what turn a plain result into
+     * one with a trail and expandable answers, so they are checked as data
+     * rather than eyeballed in a validator.
+     */
+    private function structuredData(): void
+    {
+        $db = Database::instance();
+
+        // Home: site, organisation, and an FAQ whose answers are on the page.
+        $home = SeoService::forHome()->render();
+        $blocks = $this->jsonLd($home);
+        $types = array_map(static fn (array $b): string => (string) ($b['@type'] ?? ''), $blocks);
+
+        $this->assertTrue('SEO: the home page declares a WebSite', in_array('WebSite', $types, true));
+        $this->assertTrue('SEO: the home page declares an Organization', in_array('Organization', $types, true));
+        $this->assertTrue('SEO: the home page declares an FAQPage', in_array('FAQPage', $types, true));
+
+        $faq = SeoService::homeFaq();
+        $this->assertGreaterThan('SEO: the FAQ has questions', 3, (float) count($faq));
+        foreach ($faq as $pair) {
+            $this->assertTrue(
+                'SEO: every FAQ answer is real text, not a missing key',
+                mb_strlen($pair['answer']) > 40 && !str_contains($pair['answer'], 'faq.')
+            );
+        }
+        foreach ($blocks as $block) {
+            if (($block['@type'] ?? '') !== 'FAQPage') {
+                continue;
+            }
+            $this->assertSame(
+                'SEO: the FAQ markup describes exactly the questions on the page',
+                count($faq),
+                count($block['mainEntity'] ?? [])
+            );
+        }
+
+        // A template page: a product, and a trail down to it.
+        $template = $db->first(
+            'SELECT * FROM ' . $db->wrap($db->table('templates')) . ' WHERE deleted_at IS NULL LIMIT 1'
+        );
+        if ($template === null) {
+            $this->pass('SEO: skipped the template page, the catalogue is empty');
+            return;
+        }
+        $templateBlocks = $this->jsonLd(
+            SeoService::forTemplate((array) $template)
+                ->breadcrumbs([
+                    ['name' => 'Home', 'url' => \App\Core\Url::to('/')],
+                    ['name' => 'Templates', 'url' => \App\Core\Url::to('templates')],
+                    ['name' => (string) $template['name'], 'url' => \App\Core\Url::to('templates/' . $template['slug'])],
+                ])
+                ->render()
+        );
+        $templateTypes = array_map(static fn (array $b): string => (string) ($b['@type'] ?? ''), $templateBlocks);
+        $this->assertTrue('SEO: a template page declares a Product', in_array('Product', $templateTypes, true));
+        $this->assertTrue('SEO: a template page declares a BreadcrumbList', in_array('BreadcrumbList', $templateTypes, true));
+
+        foreach ($templateBlocks as $block) {
+            if (($block['@type'] ?? '') !== 'BreadcrumbList') {
+                continue;
+            }
+            $positions = array_map(
+                static fn (array $item): int => (int) ($item['position'] ?? 0),
+                $block['itemListElement'] ?? []
+            );
+            $this->assertSame('SEO: the breadcrumb positions run 1..n', [1, 2, 3], $positions);
+        }
+
+        // An empty list must not emit an empty ItemList, which Google flags.
+        $this->assertSame(
+            'SEO: an empty list emits no markup',
+            [],
+            array_filter(
+                $this->jsonLd(SeoService::make()->itemList([])->render()),
+                static fn (array $b): bool => ($b['@type'] ?? '') === 'ItemList'
+            )
+        );
+
+        // The catalogue's own copy: unique per template and keyword-bearing,
+        // because one sentence repeated across the catalogue ranks for nothing.
+        $titles = $db->column(
+            'SELECT meta_title FROM ' . $db->wrap($db->table('templates')) . ' WHERE deleted_at IS NULL'
+        );
+        $this->assertSame(
+            'SEO: every template has its own meta title',
+            count($titles),
+            count(array_unique($titles))
+        );
+        $longest = 0;
+        foreach ($titles as $title) {
+            $longest = max($longest, mb_strlen((string) $title));
+        }
+        $this->assertTrue('SEO: no meta title is overlong', $longest <= 60, 'longest: ' . $longest);
+
+        $descriptions = $db->column(
+            'SELECT meta_description FROM ' . $db->wrap($db->table('templates')) . ' WHERE deleted_at IS NULL'
+        );
+        $this->assertSame(
+            'SEO: every template has its own meta description',
+            count($descriptions),
+            count(array_unique($descriptions))
+        );
+    }
+
+    /**
+     * Pull the JSON-LD blocks out of rendered head markup.
+     *
+     * @return array<int,array<string,mixed>>
+     */
+    private function jsonLd(string $html): array
+    {
+        preg_match_all(
+            '#<script type="application/ld\+json"[^>]*>(.*?)</script>#s',
+            $html,
+            $matches
+        );
+
+        $out = [];
+        foreach ($matches[1] ?? [] as $raw) {
+            $decoded = json_decode(trim($raw), true);
+            if (is_array($decoded)) {
+                $out[] = $decoded;
+            } else {
+                $this->fail('SEO: a JSON-LD block is not valid JSON', substr(trim($raw), 0, 80));
+            }
+        }
+
+        return $out;
     }
 
     private function updateSafety(): void

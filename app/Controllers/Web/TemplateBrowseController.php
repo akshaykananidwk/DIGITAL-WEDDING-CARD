@@ -48,6 +48,36 @@ final class TemplateBrowseController extends Controller
         return Response::json(['suggestions' => $suggestions])->cache(60);
     }
 
+    /**
+     * Home > Templates > Category > Subcategory > this page.
+     *
+     * @param  array<string,mixed>|null $category
+     * @param  array<string,mixed>|null $subcategory
+     * @return array<int,array{name:string,url:string}>
+     */
+    private function trailFor(?array $category, ?array $subcategory, string $leaf, string $leafUrl): array
+    {
+        $trail = [
+            ['name' => Lang::get('nav.home'), 'url' => Url::to('/')],
+            ['name' => Lang::get('nav.templates'), 'url' => Url::to('templates')],
+        ];
+        if ($category !== null) {
+            $trail[] = [
+                'name' => (string) $category['name'],
+                'url'  => Url::to('category/' . $category['slug']),
+            ];
+            if ($subcategory !== null) {
+                $trail[] = [
+                    'name' => (string) $subcategory['name'],
+                    'url'  => Url::to('category/' . $category['slug'] . '/' . $subcategory['slug']),
+                ];
+            }
+        }
+        $trail[] = ['name' => $leaf, 'url' => $leafUrl];
+
+        return $trail;
+    }
+
     public function index(Request $request): Response
     {
         $filters = $this->filtersFrom($request);
@@ -57,12 +87,25 @@ final class TemplateBrowseController extends Controller
         $query = array_filter($filters, static fn ($value) => $value !== '' && $value !== null && $value !== true);
         unset($query['active']);
 
+        $listed = [];
+        foreach ($result['rows'] as $row) {
+            $listed[] = [
+                'name' => (string) $row['name'],
+                'url'  => Url::to('templates/' . $row['slug']),
+            ];
+        }
+
         return $this->view('templates.index', [
             'seo' => SeoService::make()
                 ->title(Lang::get('templates.title'))
                 ->description(Lang::get('templates.subtitle'))
                 ->canonical(Url::to('templates'))
-                ->withLocaleAlternates('templates'),
+                ->withLocaleAlternates('templates')
+                ->breadcrumbs([
+                    ['name' => Lang::get('nav.home'), 'url' => Url::to('/')],
+                    ['name' => Lang::get('nav.templates'), 'url' => Url::to('templates')],
+                ])
+                ->itemList($listed, Lang::get('templates.title')),
             'templates'  => $result['rows'],
             'pagination' => $this->paginationMeta($result, Url::to('templates'), $query),
             'filters'    => $filters,
@@ -87,7 +130,9 @@ final class TemplateBrowseController extends Controller
             : $this->subcategories->find((int) $template['subcategory_id']);
 
         return $this->view('templates.show', [
-            'seo'         => SeoService::forTemplate($template),
+            'seo'         => SeoService::forTemplate($template)
+                ->breadcrumbs($this->trailFor($category, $subcategory, (string) $template['name'],
+                    Url::to('templates/' . $template['slug']))),
             'template'    => $template,
             'category'    => $category,
             'subcategory' => $subcategory,

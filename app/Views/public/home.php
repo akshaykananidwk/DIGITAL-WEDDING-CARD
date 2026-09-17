@@ -200,6 +200,39 @@ $view->extend('layouts.app');
     </section>
 <?php endif; ?>
 
+<?php
+/*
+ * The questions people actually ask before they start. Rendered here because
+ * the home page's FAQ structured data describes this very list - Google asks
+ * that the answers be on the page, and it is the honest way round.
+ */
+$faq = App\Services\SeoService::homeFaq();
+?>
+<?php if ($faq !== []): ?>
+    <section class="container pb-5" id="faq">
+        <div class="sk-section-head">
+            <h2 class="h3 mb-0"><?= e(__('faq.title')) ?></h2>
+        </div>
+        <div class="accordion mt-3" id="sk-faq">
+            <?php foreach ($faq as $i => $pair): ?>
+                <div class="accordion-item">
+                    <h3 class="accordion-header">
+                        <button class="accordion-button <?= $i === 0 ? '' : 'collapsed' ?>" type="button"
+                                data-bs-toggle="collapse" data-bs-target="#faq-<?= (int) $i ?>"
+                                aria-expanded="<?= $i === 0 ? 'true' : 'false' ?>">
+                            <?= e($pair['question']) ?>
+                        </button>
+                    </h3>
+                    <div class="accordion-collapse collapse <?= $i === 0 ? 'show' : '' ?>"
+                         id="faq-<?= (int) $i ?>" data-bs-parent="#sk-faq">
+                        <div class="accordion-body"><?= e($pair['answer']) ?></div>
+                    </div>
+                </div>
+            <?php endforeach; ?>
+        </div>
+    </section>
+<?php endif; ?>
+
 <section class="container pb-5">
     <div class="sk-cta">
         <h2 class="h3 mb-2"><?= e(__('home.final_cta_title')) ?></h2>

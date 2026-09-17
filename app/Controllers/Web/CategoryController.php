@@ -53,7 +53,13 @@ final class CategoryController extends Controller
         ], $page, self::PER_PAGE);
 
         return $this->view('templates.category', [
-            'seo'         => SeoService::forCategory($category),
+            'seo'         => SeoService::forCategory($category)
+                ->breadcrumbs([
+                    ['name' => Lang::get('nav.home'), 'url' => Url::to('/')],
+                    ['name' => Lang::get('nav.categories'), 'url' => Url::to('categories')],
+                    ['name' => (string) $category['name'], 'url' => Url::to('category/' . $category['slug'])],
+                ])
+                ->itemList($this->listed($result['rows']), (string) $category['name']),
             'category'    => $category,
             'subcategory' => null,
             'subcategories' => $this->subcategories->forCategory((int) $category['id']),
@@ -61,6 +67,25 @@ final class CategoryController extends Controller
             'pagination'  => $this->paginationMeta($result, Url::to('category/' . $category['slug'])),
             'total'       => $result['total'],
         ]);
+    }
+
+    /**
+     * The templates on this page, as a list for the structured data.
+     *
+     * @param  array<int,array<string,mixed>> $rows
+     * @return array<int,array{name:string,url:string}>
+     */
+    private function listed(array $rows): array
+    {
+        $out = [];
+        foreach ($rows as $row) {
+            $out[] = [
+                'name' => (string) $row['name'],
+                'url'  => Url::to('templates/' . $row['slug']),
+            ];
+        }
+
+        return $out;
     }
 
     public function showSubcategory(Request $request): Response
@@ -81,7 +106,17 @@ final class CategoryController extends Controller
         ], $page, self::PER_PAGE);
 
         return $this->view('templates.category', [
-            'seo'         => SeoService::forCategory($category, $subcategory),
+            'seo'         => SeoService::forCategory($category, $subcategory)
+                ->breadcrumbs([
+                    ['name' => Lang::get('nav.home'), 'url' => Url::to('/')],
+                    ['name' => Lang::get('nav.categories'), 'url' => Url::to('categories')],
+                    ['name' => (string) $category['name'], 'url' => Url::to('category/' . $category['slug'])],
+                    [
+                        'name' => (string) $subcategory['name'],
+                        'url'  => Url::to('category/' . $category['slug'] . '/' . $subcategory['slug']),
+                    ],
+                ])
+                ->itemList($this->listed($result['rows']), (string) $subcategory['name']),
             'category'    => $category,
             'subcategory' => $subcategory,
             'subcategories' => $this->subcategories->forCategory((int) $category['id']),

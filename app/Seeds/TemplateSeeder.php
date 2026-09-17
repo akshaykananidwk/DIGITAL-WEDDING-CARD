@@ -194,9 +194,26 @@ final class TemplateSeeder extends Seeder
         $tags = (array) $spec['tags'];
         $type = (string) $spec['type'];
 
-        $description = $name . ' - a ready-to-use ' . str_replace('_', ' ', $type)
-            . ' invitation design in the ' . strtolower((string) $palette['label']) . ' palette. '
-            . 'Add your names, dates, photos and message, then share the link on WhatsApp.';
+        /*
+         * On-page and meta copy. Written around what people search for - the
+         * occasion, "digital kankotri", "invitation card", the language and
+         * free - and around what the design actually is, so each template's
+         * text differs instead of one sentence repeated 51 times.
+         */
+        $style = ThemePalettes::stylePack((string) ($theme['style'] ?? 'kankotri-classic'));
+        $styleLabel = strtolower((string) ($style['label'] ?? 'classic'));
+        $occasion = str_replace('_', ' ', $type);
+
+        // "classic kankotri" + "kankotri" reads as a stutter, so a word the
+        // style already carries is not repeated by the occasion.
+        $descriptor = trim($styleLabel . ' ' . $occasion);
+        $descriptor = implode(' ', array_values(array_unique(explode(' ', $descriptor))));
+
+        $description = $name . ' is a free ' . $descriptor
+            . ' invitation design in the ' . strtolower((string) $palette['label']) . ' palette, with a '
+            . str_replace('-', ' ', (string) ($theme['ornament'] ?? 'paisley')) . ' motif. '
+            . 'Add your names, dates, venue and photos, then share the link on WhatsApp, '
+            . 'download a print-ready PDF and collect RSVPs. Works in Gujarati, Hindi and English.';
 
         $slug = $this->uniqueSlug(Str::slug($name . ' ' . strtolower((string) $spec['code'])));
 
@@ -238,7 +255,10 @@ final class TemplateSeeder extends Seeder
             'is_active'       => 1,
             'is_featured'     => !empty($spec['featured']) ? 1 : 0,
             'sort_order'      => (int) ($spec['sort_order'] ?? 100),
-            'meta_title'      => $name . ' invitation card template',
+            // Front-loaded with the design's name, then the phrase people
+            // actually type. Kept short enough that the site name still fits
+            // in what a result shows, and never cut mid-word.
+            'meta_title'      => Str::limitWords($name . ' - digital kankotri template', 52),
             'meta_description' => mb_substr($description, 0, 300),
             'created_at'      => $this->now(),
             'updated_at'      => $this->now(),
