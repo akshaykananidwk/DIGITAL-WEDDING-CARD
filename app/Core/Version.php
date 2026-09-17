@@ -83,3 +83,4 @@ final class Version
         self::$data = null;
     }
 }
+// stale local edit

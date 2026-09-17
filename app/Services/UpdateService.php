@@ -252,7 +252,10 @@ final class UpdateService
             $filesBackupPath = $filesBackup['path'];
             $record('backup_files', true, 'Files backed up (' . Str::bytesToHuman((float) $filesBackup['size']) . ').');
 
-            $this->updates->update($logId, ['backup_path' => $filesBackupPath]);
+            $this->updates->update($logId, [
+                'backup_path'          => $filesBackupPath,
+                'database_backup_path' => $databaseBackupPath,
+            ]);
 
             // ---- Step 4: download ----
             $this->updates->step($logId, 'downloading', 'download');
@@ -786,6 +789,15 @@ final class UpdateService
             return ['ok' => false, 'message' => 'The backup for that update is no longer on disk.'];
         }
 
+        // The pre-update database dump is stored beside the file archive;
+        // older records may only have a full archive to extract it from.
+        $databaseBackupPath = (string) ($entry['database_backup_path'] ?? '');
+        $extractedDump = null;
+        if ($databaseBackupPath === '' || !is_file($databaseBackupPath)) {
+            $extractedDump = $this->backups->extractDatabaseDump($backupPath);
+            $databaseBackupPath = (string) $extractedDump;
+        }
+
         $lock = $this->acquireLock();
         if (!$lock['ok']) {
             return $lock;
@@ -793,15 +805,20 @@ final class UpdateService
         $this->maintenance->enable('Restoring the previous version. Back in a moment.', 120);
 
         try {
-            $databaseDump = $this->backups->extractDatabaseDump($backupPath);
-            $result = $this->rollback($backupPath, $databaseDump);
-            if ($databaseDump !== null) {
-                @unlink($databaseDump);
+            $result = $this->rollback($backupPath, $databaseBackupPath === '' ? null : $databaseBackupPath);
+            if ($extractedDump !== null) {
+                @unlink($extractedDump);
             }
 
             $health = $this->health->runCritical();
             $this->maintenance->disable();
             $this->releaseLock();
+
+            // The entry no longer describes what is deployed, so it stops
+            // counting as the installed commit for the next update check.
+            if ($result['ok']) {
+                $this->updates->update($updateLogId, ['status' => 'rolled_back']);
+            }
 
             AuditService::instance()->log('update.rollback', 'update', $updateLogId, $result['message']);
 
