@@ -1,0 +1,105 @@
+# =============================================================
+#  Invitation Card SaaS - Apache configuration (public root)
+# =============================================================
+
+# ---------- Default charset ----------
+AddDefaultCharset UTF-8
+
+# ---------- Disable directory listing ----------
+Options -Indexes +FollowSymLinks
+
+# ---------- Front controller ----------
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # If the app lives in a sub-directory, RewriteBase is auto-detected by
+    # index.php; no change required here in most cases.
+
+    # Block direct access to protected application directories.
+    RewriteRule ^(app|database|storage|tests|bin|docs)(/|$) - [F,L]
+
+    # Block dotfiles (.env, .git, ...)
+    RewriteRule (^|/)\. - [F,L]
+
+    # Force HTTPS when the server reports a secure-capable environment.
+    # Disabled by default so local/http installs keep working. Enable by
+    # switching the condition below to "on".
+    # RewriteCond %{HTTPS} !=on
+    # RewriteCond %{HTTP:X-Forwarded-Proto} !https
+    # RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+    # Serve existing files/directories directly (assets, uploads).
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
+
+    # Everything else goes through the front controller.
+    RewriteRule ^ index.php [L]
+</IfModule>
+
+# ---------- Security headers ----------
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    Header always set Cross-Origin-Opener-Policy "same-origin"
+    Header always set Permissions-Policy "geolocation=(), microphone=(), camera=(), payment=()"
+    # HSTS is only meaningful over HTTPS; uncomment once SSL is live.
+    # Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains"
+    Header unset X-Powered-By
+</IfModule>
+
+# ---------- Compression ----------
+<IfModule mod_brotli.c>
+    AddOutputFilterByType BROTLI_COMPRESS text/html text/plain text/css text/xml application/javascript application/json image/svg+xml
+</IfModule>
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/plain text/css text/xml application/javascript application/json image/svg+xml
+</IfModule>
+
+# ---------- Browser caching ----------
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType text/css                 "access plus 1 year"
+    ExpiresByType application/javascript   "access plus 1 year"
+    ExpiresByType image/jpeg               "access plus 1 year"
+    ExpiresByType image/png                "access plus 1 year"
+    ExpiresByType image/webp               "access plus 1 year"
+    ExpiresByType image/svg+xml            "access plus 1 year"
+    ExpiresByType font/ttf                 "access plus 1 year"
+    ExpiresByType font/woff2               "access plus 1 year"
+    ExpiresByType text/html                "access plus 0 seconds"
+</IfModule>
+
+# ---------- MIME types ----------
+<IfModule mod_mime.c>
+    AddType application/manifest+json .webmanifest
+    AddType image/webp                .webp
+    AddType font/woff2                .woff2
+    AddType font/ttf                  .ttf
+</IfModule>
+
+# ---------- Hide sensitive files ----------
+<FilesMatch "(^\.|composer\.(json|lock)|\.(env|ini|log|sql|sh|md|lock|bak|dist|json)$)">
+    Require all denied
+</FilesMatch>
+<Files "index.php">
+    Require all granted
+</Files>
+<Files "manifest.webmanifest">
+    Require all granted
+</Files>
+<Files "service-worker.js">
+    Require all granted
+</Files>
+<Files "robots.txt">
+    Require all granted
+</Files>
+
+# ---------- PHP hardening (when allowed by host) ----------
+<IfModule mod_php.c>
+    php_flag display_errors off
+    php_flag expose_php off
+    php_value session.cookie_httponly 1
+    php_value session.use_strict_mode 1
+</IfModule>

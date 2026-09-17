@@ -1,0 +1,9 @@
+{
+    "version": "1.0.0",
+    "name": "Shubh Kankotri",
+    "codename": "Kankotri",
+    "released_at": "2026-09-17",
+    "min_php": "8.0.0",
+    "schema": 1,
+    "notes": "First production release: template engine, invitation builder, PDF/QR export, RSVP, analytics, AI generator, installer, backup, health monitoring and GitHub auto-update with rollback."
+}

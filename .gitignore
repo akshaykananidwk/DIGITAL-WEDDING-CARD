@@ -1,0 +1,38 @@
+# ---- Local environment / secrets (never commit) ----
+.env
+.env.*
+!.env.example
+config/app.php
+storage/installed.lock
+.installed
+
+# ---- Runtime state ----
+storage/logs/*
+storage/cache/*
+storage/sessions/*
+storage/backups/*
+storage/tmp/*
+storage/update/*
+!storage/**/.gitkeep
+
+# ---- User generated content ----
+uploads/photos/*
+uploads/thumbs/*
+uploads/music/*
+uploads/media/*
+uploads/qr/*
+uploads/templates/*
+!uploads/**/.gitkeep
+
+# ---- OS / editor noise ----
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.idea/
+.vscode/
+nbproject/
+
+# ---- Composer (optional; app runs without it) ----
+/vendor/
+composer.lock
