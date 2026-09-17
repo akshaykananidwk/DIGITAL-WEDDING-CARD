@@ -51,7 +51,7 @@ $hero = $c->heroPhotoUrl();
 
 <?php if ($c->has('offer_text')): ?>
     <section class="inv-section inv-section--tight inv-reveal">
-        <div class="inv-page">
+        <div class="inv-page inv-framed">
             <p class="inv-note inv-center mb-0"><?= $c->multiline('offer_text') ?></p>
         </div>
     </section>

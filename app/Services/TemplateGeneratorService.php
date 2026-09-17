@@ -45,7 +45,12 @@ final class TemplateGeneratorService
         'Timeless', 'Festive', 'Opulent', 'Delicate', 'Majestic',
     ];
 
-    private const ORNAMENTS = ['paisley', 'mandala', 'floral', 'peacock', 'arch', 'temple', 'lotus', 'line', 'leaf', 'star'];
+    /** Every motif the ornament partial can draw. */
+    private const ORNAMENTS = [
+        'paisley', 'mandala', 'floral', 'peacock', 'arch', 'temple', 'lotus',
+        'line', 'leaf', 'star', 'ganesh', 'kalash', 'diya', 'shankh', 'flute',
+        'om', 'swastik', 'garland', 'torana', 'bandhani',
+    ];
 
     /** @return array{created:int,skipped:int,message:string} */
     public function generate(int $count, bool $activate = true, ?int $userId = null): array
@@ -177,6 +182,15 @@ final class TemplateGeneratorService
 
         $style = self::STYLE_WORDS[$index % count(self::STYLE_WORDS)];
         $ornament = self::ORNAMENTS[$index % count(self::ORNAMENTS)];
+
+        /*
+         * The structural look. Stepped by a number coprime with the pack count
+         * so it does not fall into lockstep with the palette (which steps every
+         * few hundred) or the layout (every three): layout x palette x pack is
+         * what keeps a thousand generated cards from repeating a look.
+         */
+        $packs = ThemePalettes::stylePackSlugs();
+        $stylePack = $packs[($index * 7) % count($packs)];
         $motion = match ($index % 4) {
             0 => 'rich',
             1 => 'none',
@@ -184,11 +198,18 @@ final class TemplateGeneratorService
         };
         $type = $this->typeFor($layout, $motion);
 
+        $packLabel = (string) (ThemePalettes::stylePack($stylePack)['label'] ?? '');
         $name = $style . ' ' . $paletteTokens['label'] . ' ' . $subcategory['name'];
 
         $tags = array_values(array_unique(array_merge(
             $this->decodeTags($subcategory['theme_tags'] ?? null),
-            [strtolower($style), strtolower(str_replace(' & ', ' ', (string) $paletteTokens['label'])), $ornament, $layout]
+            [
+                strtolower($style),
+                strtolower(str_replace(' & ', ' ', (string) $paletteTokens['label'])),
+                $ornament,
+                $layout,
+                strtolower(str_replace(' ', '-', $packLabel)),
+            ]
         )));
 
         return [
@@ -200,6 +221,11 @@ final class TemplateGeneratorService
             'preset'         => $preset,
             'type'           => $type,
             'motion'         => $motion,
+            'style'          => $stylePack,
+            // The motif was being put in the name and the tags but never in
+            // the theme, so every generated card fell back to its pack's
+            // motif. It now varies independently.
+            'ornament'       => $ornament,
             'tags'           => $tags,
             'featured'       => false,
             'category_id'    => (int) $subcategory['category_id'],

@@ -30,7 +30,7 @@
                 <?php endif; ?>
 
                 <?php if ($c->has('wedding_date') || $c->has('event_date') || $c->has('opening_date')): ?>
-                    <div class="inv-rule"><span class="inv-rule__diamond"></span></div>
+                    <?php $view->include('invite.partials.divider', ['c' => $c]); ?>
                     <p class="mb-0" style="font-weight:600;font-size:1.05rem">
                         <?= $c->has('wedding_date') ? $c->longDate('wedding_date')
                             : ($c->has('event_date') ? $c->longDate('event_date') : $c->longDate('opening_date')) ?>

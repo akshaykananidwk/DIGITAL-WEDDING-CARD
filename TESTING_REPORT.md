@@ -22,14 +22,14 @@ php bin/console health       # the 23 runtime checks
 ■ Security                                    44 checks    939 ms
 ■ Two-step sign-in                            35 checks  6 544 ms
 ■ Authentication and authorisation            29 checks  1 065 ms
-■ Templates and the engine                    95 checks  2 881 ms
+■ Templates and the engine                   221 checks  2 508 ms
 ■ Invitations, slugs and RSVP                 57 checks    313 ms
 ■ PDF, QR, calendar and sharing               60 checks    170 ms
 ■ Uploads and the media library               33 checks    173 ms
 ■ AI generator and recommender                38 checks     13 ms
 ■ System, installer, backups and updates     159 checks  5 747 ms
 ──────────────────────────────────────────────────────────────────
-All 550 checks passed in 17.8 s across 9 cases
+All 676 checks passed in 18.3 s across 9 cases
 ```
 
 The runner has no dependencies — no Composer, no PHPUnit, no Node — so it runs on the
@@ -106,6 +106,7 @@ produced file, not just by a 200 response.
 | Login throttling | 20 failures allowed, the 21st returns **429** |
 | Two-step sign-in | Enabled on the profile screen; a correct password redirected to `/login/verify` and `/dashboard` still bounced to login; the emailed code signed in; a wrong code was refused with the attempts left; the code could not be reused |
 | Template browsing | Gallery, filters (category, language, colour, type, tag), search, detail, full-screen preview |
+| Design variety | Screenshots of `temple-mandala` templates before the change were identical but for colour - same motif, divider, countdown and header. After: **0** layout+pack collisions across the catalogue, all 16 packs in use, and Shubh Ganesh (double frame, mandala watermark, Ganesh motif, knot divider), Mahadev Trishul (torana frame, block print, Om motif, timeline programme), Shri Ram (corner brackets, rice paper, shankh motif, swag divider) and Dwarkadhish (rule frame, chevron, flute motif, tablet countdown) each render as their own card. Every pack is checked for valid values on all six axes; a poisoned theme value falls back to the allowed default and cannot escape the attribute; a builder override cannot restyle the card. |
 | Search suggestions | `GET /templates/suggest?q=kank` returned 9 template and occasion names; typing in the gallery's search box filled its `<datalist>` in Chromium with no console or CSP error; one character and nonsense both return nothing |
 | Invitation creation | Created from a template as a draft with a unique slug and short code, default sections seeded |
 | Content saving | Values persisted per field; unknown keys ignored; markup and over-long values rejected |

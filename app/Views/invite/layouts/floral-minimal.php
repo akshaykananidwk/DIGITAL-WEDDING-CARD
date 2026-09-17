@@ -8,8 +8,8 @@
  */
 ?>
 <section class="inv-hero" style="padding-top:4rem">
-    <div class="inv-page">
-        <?php $view->include('invite.partials.ornament', ['name' => 'floral', 'size' => 'md']); ?>
+    <div class="inv-page inv-framed">
+        <?php $view->include('invite.partials.ornament', ['name' => $c->ornamentOr('floral'), 'size' => 'md']); ?>
 
         <p class="inv-hero__eyebrow mt-4 mb-3"><?= e(__('invite.save_the_date')) ?></p>
 

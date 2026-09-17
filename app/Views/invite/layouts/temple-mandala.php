@@ -9,8 +9,8 @@
  */
 ?>
 <section class="inv-hero" style="padding-top:2.5rem">
-    <div class="inv-page">
-        <?php $view->include('invite.partials.ornament', ['name' => 'temple', 'size' => 'md']); ?>
+    <div class="inv-page inv-framed">
+        <?php $view->include('invite.partials.ornament', ['name' => $c->ornamentOr('temple'), 'size' => 'md']); ?>
 
         <?php if ($c->has('invocation')): ?>
             <p class="inv-heading mt-3 mb-1" style="font-size:1.3rem"><?= $c->get('invocation') ?></p>
@@ -24,7 +24,7 @@
             <p class="inv-muted mt-1 mb-0"><?= $c->get('deity_name') ?></p>
         <?php endif; ?>
 
-        <div class="inv-rule"><span class="inv-rule__diamond"></span></div>
+        <?php $view->include('invite.partials.divider', ['c' => $c]); ?>
 
         <?php if ($c->has('host_name') || $c->has('family_name')): ?>
             <p class="mb-0">

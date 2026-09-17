@@ -152,6 +152,19 @@ final class TemplateSeeder extends Seeder
         $this->note($added . ' curated template(s) added.');
     }
 
+    /** @var array<string,array<int,string>> layout => style packs already used on it */
+    private array $packsByLayout = [];
+
+    /** A pack this layout is not already using, so siblings never match. */
+    private function packForLayout(string $code, string $layout): string
+    {
+        $taken = $this->packsByLayout[$layout] ?? [];
+        $pack = ThemePalettes::choosePack($code, $taken);
+        $this->packsByLayout[$layout] = array_merge($taken, [$pack]);
+
+        return $pack;
+    }
+
     /**
      * Insert one template row.
      *
@@ -165,7 +178,16 @@ final class TemplateSeeder extends Seeder
         $theme = ThemePalettes::themeFor(
             (string) $spec['palette'],
             (string) $spec['font_pair'],
-            (string) $spec['motion']
+            (string) $spec['motion'],
+            isset($spec['ornament']) ? (string) $spec['ornament'] : null,
+            // The structural look. Derived from the code and the template's
+            // position on its layout unless the caller names one, so sibling
+            // templates differ in shape as well as colour rather than being
+            // the same card twice.
+            (string) ($spec['style'] ?? $this->packForLayout(
+                (string) $spec['code'],
+                (string) $spec['layout']
+            ))
         );
 
         $name = (string) $spec['name'];

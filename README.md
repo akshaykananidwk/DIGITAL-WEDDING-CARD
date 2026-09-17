@@ -41,6 +41,19 @@ renderers) crossed with a `theme` (design tokens as JSON) and a set of
 validated. Adding a design is inserting a row; adding a *field* to a design is
 inserting a row. Nothing about an individual invitation is hardcoded anywhere.
 
+A design has three independent axes, which is what keeps a large catalogue from
+repeating itself:
+
+| Axis | What it decides | How many |
+|---|---|---|
+| `layout_key` | the order and grouping of the content | 10 PHP renderers |
+| palette + font pair | the colour and the type | 16 x 6 |
+| **style pack** | the *shape*: card frame, background pattern, section divider, panel treatment, countdown form, header composition, motif | 16 packs over 6 axes, 20 motifs |
+
+Colour alone was not enough - a dozen mandir templates differed only in palette and
+read as the same card. A pack changes structure, and the seeder never gives two
+templates on one layout the same pack.
+
 A bespoke card that needs more than its layout offers can instead be built from
 `template_components` in the admin panel: blocks with `{{field_key}}` placeholders,
 grouped into pages, which take over the rendering while any of them is visible and
@@ -87,7 +100,7 @@ php bin/console pdf:test
 ## Tests
 
 ```bash
-php tests/run.php                  # 550 checks, 9 cases, no dependencies
+php tests/run.php                  # 676 checks, 9 cases, no dependencies
 php tests/run.php Security         # one case
 php tests/run.php --json           # machine readable
 ```

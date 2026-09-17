@@ -11,6 +11,7 @@ use App\Repositories\TemplateFieldRepository;
 use App\Repositories\TemplateRepository;
 use App\Seeds\FieldPresets;
 use App\Seeds\ThemePalettes;
+use App\Services\TemplateContext;
 use App\Services\TemplateEngine;
 use App\Services\TemplateGeneratorService;
 use Tests\TestCase;
@@ -37,6 +38,7 @@ final class TemplateTest extends TestCase
         $this->engine();
         $this->placeholders();
         $this->components();
+        $this->designVariety();
         $this->suggestions();
         $this->scalability();
     }
@@ -184,6 +186,175 @@ final class TemplateTest extends TestCase
             $engine->context(array_merge($row, ['custom_html' => null]), ['groom_name' => '<b>x</b>'], true)
         );
         $this->assertNotContains('Engine: a placeholder value cannot inject markup', '<b>x</b>', $resolved);
+    }
+
+    /**
+     * Every template must look like its own card, not a recolour of another.
+     *
+     * The complaint this answers was concrete: a dozen templates shared the
+     * mandir layout and differed only in colour, because the layout hardcoded
+     * its motif and nothing else about the shape varied. Style packs are the
+     * fix, so what is checked here is that they actually reach the page and
+     * that no two templates on one layout wear the same one.
+     */
+    private function designVariety(): void
+    {
+        $db = Database::instance();
+        $templates = new TemplateRepository();
+        $engine = new TemplateEngine();
+
+        // Every pack names a value for every axis, and only allowed values.
+        foreach (ThemePalettes::stylePacks() as $slug => $pack) {
+            foreach (TemplateContext::STYLE_AXES as $axis => $allowed) {
+                $this->assertTrue(
+                    'Variety: pack ' . $slug . ' sets a valid ' . $axis,
+                    isset($pack[$axis]) && in_array($pack[$axis], $allowed, true),
+                    (string) ($pack[$axis] ?? 'missing')
+                );
+            }
+            $this->assertTrue(
+                'Variety: pack ' . $slug . ' names a known motif',
+                in_array($pack['ornament'] ?? '', TemplateContext::ORNAMENTS, true)
+            );
+        }
+
+        /*
+         * No two templates on a layout share a pack. Counted in PHP rather
+         * than with SQL JSON functions, because the schema builder targets
+         * SQLite as well as MySQL and their JSON syntax differs.
+         */
+        $rows = $db->select(
+            'SELECT layout_key, theme FROM ' . $db->wrap($db->table('templates')) . ' WHERE deleted_at IS NULL'
+        );
+        $seen = [];
+        $collisions = [];
+        foreach ($rows as $row) {
+            $theme = is_array($row['theme']) ? $row['theme'] : json_decode((string) $row['theme'], true);
+            $pack = is_array($theme) ? (string) ($theme['style'] ?? '') : '';
+            $key = (string) $row['layout_key'] . '|' . $pack;
+            if (isset($seen[$key])) {
+                $collisions[] = $key;
+            }
+            $seen[$key] = true;
+        }
+        $this->assertSame(
+            'Variety: no two templates on one layout share a style pack',
+            [],
+            $collisions
+        );
+
+        // And the axes reach the rendered page.
+        $invitation = $db->first(
+            'SELECT * FROM ' . $db->wrap($db->table('invitations')) . ' WHERE deleted_at IS NULL LIMIT 1'
+        );
+        if ($invitation === null) {
+            $this->pass('Variety: skipped rendering, no invitation present');
+            return;
+        }
+        $row = (array) (new \App\Repositories\InvitationRepository())->find((int) $invitation['id']);
+        $context = $engine->context($row, null, true);
+
+        $this->assertMatches(
+            'Variety: the style axes are exposed as data attributes',
+            '/data-frame="[a-z]+" data-pattern="[a-z]+" data-divider="[a-z]+"/',
+            $context->styleAttributes()
+        );
+        foreach (array_keys(TemplateContext::STYLE_AXES) as $axis) {
+            $this->assertTrue(
+                'Variety: ' . $axis . ' resolves to an allowed value',
+                in_array($context->style($axis), TemplateContext::STYLE_AXES[$axis], true)
+            );
+        }
+
+        // A motif named by the template wins over the layout's own default,
+        // which is what stopped a dozen cards sharing one icon.
+        $this->assertSame(
+            'Variety: a template motif overrides the layout default',
+            (string) $context->ornament(),
+            $context->ornamentOr('temple')
+        );
+        /*
+         * The shape belongs to the template, not to the person filling it in:
+         * a theme override naming a frame is ignored, so a card cannot be
+         * restyled through the builder's colour controls.
+         */
+        $this->assertSame(
+            'Variety: a user cannot override the structural axes',
+            $context->style('frame'),
+            $engine->context(
+                array_merge($row, ['theme_overrides' => ['frame' => 'arch']]),
+                null,
+                true
+            )->style('frame')
+        );
+
+        // And a value that is not on the allowed list is refused rather than
+        // printed into the attribute. Poked into the template itself, which is
+        // the only place such a value could come from, then put back.
+        $templateId = (int) $row['template_id'];
+        $original = (string) $db->value(
+            'SELECT theme FROM ' . $db->wrap($db->table('templates')) . ' WHERE id = :id',
+            ['id' => $templateId]
+        );
+        try {
+            $poisoned = json_decode($original, true);
+            $poisoned['frame'] = 'bogus" onload="alert(1)';
+            $poisoned['counter'] = 'nonsense';
+            $db->update('templates', ['theme' => json_encode($poisoned)], ['id' => $templateId]);
+            $templates->flushDefinition($templateId);
+
+            $poisonedContext = $engine->context(
+                (array) (new \App\Repositories\InvitationRepository())->find((int) $invitation['id']),
+                null,
+                true
+            );
+            $this->assertSame(
+                'Variety: an unknown frame falls back to the first allowed value',
+                'plain',
+                $poisonedContext->style('frame')
+            );
+            $this->assertSame(
+                'Variety: an unknown counter falls back too',
+                'boxes',
+                $poisonedContext->style('counter')
+            );
+            $this->assertNotContains(
+                'Variety: nothing can break out of the attribute',
+                'onload',
+                $poisonedContext->styleAttributes()
+            );
+        } finally {
+            $db->update('templates', ['theme' => $original], ['id' => $templateId]);
+            $templates->flushDefinition($templateId);
+        }
+
+        // Two templates on the same layout must differ in more than colour.
+        $pair = [];
+        foreach ($db->select(
+            'SELECT slug, theme FROM ' . $db->wrap($db->table('templates')) . '
+             WHERE layout_key = :layout AND deleted_at IS NULL ORDER BY sort_order',
+            ['layout' => 'temple-mandala']
+        ) as $candidate) {
+            $theme = is_array($candidate['theme'])
+                ? $candidate['theme']
+                : json_decode((string) $candidate['theme'], true);
+            if (is_array($theme)) {
+                $pair[] = ['slug' => (string) $candidate['slug']] + $theme;
+            }
+            if (count($pair) === 2) {
+                break;
+            }
+        }
+        if (count($pair) === 2) {
+            $differs = ($pair[0]['frame'] ?? '') !== ($pair[1]['frame'] ?? '')
+                || ($pair[0]['pattern'] ?? '') !== ($pair[1]['pattern'] ?? '')
+                || ($pair[0]['ornament'] ?? '') !== ($pair[1]['ornament'] ?? '');
+            $this->assertTrue(
+                'Variety: two cards on one layout differ in shape, not just colour',
+                $differs,
+                $pair[0]['slug'] . ' vs ' . $pair[1]['slug']
+            );
+        }
     }
 
     /** The gallery search box's suggestions. */

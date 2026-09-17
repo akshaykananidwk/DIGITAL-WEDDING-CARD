@@ -61,6 +61,7 @@ $htmlLang = match ($language) {
 
 <div class="inv-root"
      data-motion="<?= e($skipAnimation ? 'none' : $c->motion()) ?>"
+     <?= $c->styleAttributes() ?>
      data-inv-share-endpoint="<?= e(url('invite/' . $c->invitation()['slug'] . '/share')) ?>"
      data-inv-token="<?= e(csrf_token()) ?>"
      style="<?= e($c->cssVariables()) ?>">

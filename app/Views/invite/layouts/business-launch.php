@@ -23,7 +23,7 @@
                 <p class="inv-muted mt-1 mb-0"><?= $c->get('tagline') ?></p>
             <?php endif; ?>
 
-            <div class="inv-rule"><span class="inv-rule__diamond"></span></div>
+            <?php $view->include('invite.partials.divider', ['c' => $c]); ?>
 
             <?php if ($c->eventTimestamp() > 0): ?>
                 <p class="mb-1" style="font-weight:700;font-size:1.05rem">

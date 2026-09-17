@@ -12,8 +12,8 @@
         radial-gradient(620px 300px at 88% 8%, color-mix(in srgb, var(--inv-primary) 20%, transparent), transparent 60%);">
 
     <section class="inv-hero">
-        <div class="inv-page">
-            <?php $view->include('invite.partials.ornament', ['name' => 'peacock', 'size' => 'lg']); ?>
+        <div class="inv-page inv-framed">
+            <?php $view->include('invite.partials.ornament', ['name' => $c->ornamentOr('peacock'), 'size' => 'lg']); ?>
 
             <?php if ($c->has('invocation')): ?>
                 <p class="inv-hero__eyebrow mt-3 mb-1"><?= $c->get('invocation') ?></p>

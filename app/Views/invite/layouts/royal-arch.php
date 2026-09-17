@@ -8,14 +8,14 @@
  */
 ?>
 <section class="inv-hero" style="padding-bottom:0">
-    <div class="inv-page">
+    <div class="inv-page inv-framed">
         <div style="position:relative;border:1px solid var(--inv-secondary);
                     border-radius:50% 50% 12px 12px / 22% 22% 3% 3%;
                     padding:2.75rem 1.4rem 2rem;background:var(--inv-surface);
                     box-shadow:0 20px 48px rgba(0,0,0,.10)">
 
             <div class="inv-center">
-                <?php $view->include('invite.partials.ornament', ['name' => 'mandala', 'size' => 'sm']); ?>
+                <?php $view->include('invite.partials.ornament', ['name' => $c->ornamentOr('mandala'), 'size' => 'sm']); ?>
 
                 <?php if ($c->has('invocation')): ?>
                     <p class="inv-hero__eyebrow mt-2 mb-2"><?= $c->get('invocation') ?></p>
@@ -36,7 +36,7 @@
                     <?php endif; ?>
                 <?php endif; ?>
 
-                <div class="inv-rule"><span class="inv-rule__diamond"></span></div>
+                <?php $view->include('invite.partials.divider', ['c' => $c]); ?>
 
                 <?php if ($c->eventTimestamp() > 0): ?>
                     <p class="mb-0" style="font-weight:600;font-size:1.05rem">

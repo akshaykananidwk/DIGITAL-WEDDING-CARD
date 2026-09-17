@@ -290,10 +290,91 @@ final class TemplateContext
         return implode(';', $out);
     }
 
+    /**
+     * The motifs an ornament may be drawn as.
+     *
+     * A template names one; the list is closed so a theme cannot inject a
+     * partial name, and so the gallery can be filtered by motif later.
+     */
+    public const ORNAMENTS = [
+        'paisley', 'mandala', 'peacock', 'floral', 'arch', 'temple', 'lotus',
+        'leaf', 'star', 'line', 'ganesh', 'kalash', 'diya', 'shankh', 'flute',
+        'om', 'swastik', 'garland', 'torana', 'bandhani',
+    ];
+
+    /**
+     * Style axes: the parts of a design that are structure rather than colour.
+     *
+     * Two templates with the same layout and different colours read as the
+     * same card - which is exactly the complaint these answer. Each axis is
+     * rendered by CSS keyed off a data attribute on .inv-root, so a new
+     * combination costs a row in the database and no new code.
+     *
+     * @var array<string,array<int,string>> axis => allowed values, first is the default
+     */
+    public const STYLE_AXES = [
+        // The card's border treatment.
+        'frame'   => ['plain', 'rule', 'double', 'corners', 'scallop', 'torana', 'beaded', 'arch', 'ribbon'],
+        // The page behind the card.
+        'pattern' => ['plain', 'bandhani', 'blockprint', 'mandala', 'paisley', 'rice', 'wash', 'chevron', 'temple'],
+        // How one section is separated from the next.
+        'divider' => ['diamond', 'paisley', 'dots', 'swag', 'double', 'chevron', 'knot', 'leafline'],
+        // How a section's content is contained.
+        'panel'   => ['card', 'plain', 'tinted', 'timeline', 'bordered'],
+        // The countdown's shape.
+        'counter' => ['boxes', 'circles', 'inline', 'tablet'],
+        // How the opening - invocation, names, date - is composed.
+        'header'  => ['centered', 'banner', 'monogram', 'stacked', 'ribbon'],
+    ];
+
     public function ornament(): string
     {
         $value = $this->theme('ornament', 'paisley');
-        return preg_match('/^[a-z0-9\-]+$/', $value) === 1 ? $value : 'paisley';
+        return in_array($value, self::ORNAMENTS, true) ? $value : 'paisley';
+    }
+
+    /**
+     * The template's motif, or the layout's own choice when it has none.
+     *
+     * A layout is written around a motif - the scroll expects a peacock, the
+     * mandir card a shikhara - so that stays the fallback; a template that
+     * names its own motif overrides it, which is what stops a dozen cards on
+     * one layout from looking identical.
+     */
+    public function ornamentOr(string $layoutDefault): string
+    {
+        $chosen = $this->theme('ornament', '');
+
+        return in_array($chosen, self::ORNAMENTS, true)
+            ? $chosen
+            : (in_array($layoutDefault, self::ORNAMENTS, true) ? $layoutDefault : 'paisley');
+    }
+
+    /** One style axis, falling back to the axis default when unset or unknown. */
+    public function style(string $axis): string
+    {
+        $allowed = self::STYLE_AXES[$axis] ?? null;
+        if ($allowed === null) {
+            return '';
+        }
+        $value = $this->theme($axis, '');
+
+        return in_array($value, $allowed, true) ? $value : $allowed[0];
+    }
+
+    /**
+     * The style axes as HTML attributes for .inv-root.
+     *
+     * Values are drawn from closed lists above, so they are safe in an
+     * attribute by construction; they are escaped anyway.
+     */
+    public function styleAttributes(): string
+    {
+        $out = [];
+        foreach (array_keys(self::STYLE_AXES) as $axis) {
+            $out[] = 'data-' . $axis . '="' . e($this->style($axis)) . '"';
+        }
+        return implode(' ', $out);
     }
 
     public function motion(): string

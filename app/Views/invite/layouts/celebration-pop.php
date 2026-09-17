@@ -13,7 +13,7 @@
             radial-gradient(circle at 82% 22%, color-mix(in srgb, var(--inv-primary) 35%, transparent) 0 6px, transparent 7px),
             radial-gradient(circle at 30% 82%, color-mix(in srgb, var(--inv-accent) 40%, transparent) 0 5px, transparent 6px),
             radial-gradient(circle at 70% 70%, color-mix(in srgb, var(--inv-secondary) 30%, transparent) 0 7px, transparent 8px);">
-    <div class="inv-page">
+    <div class="inv-page inv-framed">
         <div style="display:inline-block;padding:.4rem 1rem;border-radius:999px;
                     background:var(--inv-primary);color:#fff;font-size:.74rem;
                     letter-spacing:.16em;text-transform:uppercase;font-weight:700">

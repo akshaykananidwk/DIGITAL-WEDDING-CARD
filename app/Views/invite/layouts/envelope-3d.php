@@ -32,7 +32,7 @@
                     <h1 class="inv-heading" style="font-size:2.4rem"><?= $c->first('event_name', 'celebrant_name') ?: $c->title() ?></h1>
                 <?php endif; ?>
 
-                <div class="inv-rule"><span class="inv-rule__diamond"></span></div>
+                <?php $view->include('invite.partials.divider', ['c' => $c]); ?>
 
                 <?php if ($c->has('custom_message')): ?>
                     <p class="inv-lead"><?= $c->multiline('custom_message') ?></p>
