@@ -9,6 +9,7 @@ use App\Core\Config;
 use App\Core\Database;
 use App\Core\Lang;
 use App\Core\Migrator;
+use App\Core\Path;
 use App\Core\Router;
 use App\Core\Version;
 use App\Services\BackupService;
@@ -32,6 +33,7 @@ final class SystemTest extends TestCase
     public function run(): void
     {
         $this->installation();
+        $this->restrictedHost();
         $this->schema();
         $this->routing();
         $this->localisation();
@@ -69,6 +71,126 @@ final class SystemTest extends TestCase
         $again = $installer->install(['db_database' => 'should_not_be_used']);
         $this->assertFalse('Install: a second install attempt is refused', (bool) $again['ok']);
         $this->assertContains('Install: it says so plainly', 'already installed', strtolower((string) $again['message']));
+    }
+
+    /**
+     * A host with open_basedir narrowed to the document root.
+     *
+     * This is what took a fresh deployment down: probing for the secret file
+     * above the web root raises a warning, a warning is an exception here, and
+     * so every page - the installer included - answered 500.
+     *
+     * open_basedir can only be narrowed, never widened, so the restriction is
+     * applied to a child process; this one still needs the database socket.
+     */
+    private function restrictedHost(): void
+    {
+        $outside = dirname(ROOT_PATH) . '/' . Config::EXTERNAL_DIR . '/app.php';
+
+        // Unrestricted, which is this host: nothing is out of bounds.
+        $this->assertFalse('open_basedir: unrestricted on this host', Path::isRestricted());
+        $this->assertSame('open_basedir: no roots are reported', [], Path::restrictions());
+        $this->assertTrue('open_basedir: a path above the web root is allowed', Path::allowed($outside));
+
+        // Prefix matching must not be fooled by a sibling with a shared prefix
+        // or by traversal.
+        Path::flush();
+        $this->assertTrue('open_basedir: an unrestricted probe answers', Path::isDir(STORAGE_PATH));
+
+        $report = $this->restrictedReport();
+        if ($report === null) {
+            $this->pass('open_basedir: skipped, this host cannot start a child process');
+            return;
+        }
+
+        $this->assertTrue(
+            'open_basedir: the application boots under the restriction',
+            (bool) ($report['booted'] ?? false),
+            (string) ($report['error'] ?? '')
+        );
+        // ?? would read a present null as absent, so ask the array.
+        $this->assertTrue(
+            'open_basedir: booting raises nothing',
+            array_key_exists('error', $report) && $report['error'] === null,
+            (string) ($report['error'] ?? 'no error key in the report')
+        );
+        $this->assertTrue('open_basedir: the restriction is detected', (bool) ($report['restricted'] ?? false));
+        $this->assertFalse('open_basedir: a path above the web root is refused', (bool) ($report['allows_outside'] ?? true));
+        $this->assertTrue('open_basedir: a path inside it is still allowed', (bool) ($report['allows_inside'] ?? false));
+
+        // The probes answer instead of raising, which is the whole point.
+        foreach (['is_file_outside', 'is_dir_outside', 'writable_outside', 'makedir_outside'] as $probe) {
+            $this->assertFalse('open_basedir: ' . $probe . ' answers false rather than raising', (bool) ($report[$probe] ?? true));
+        }
+
+        // And nothing is offered that cannot be reached.
+        $this->assertSame(
+            'open_basedir: only reachable secret locations are offered',
+            [STORAGE_PATH . '/config/app.php'],
+            $report['candidates'] ?? []
+        );
+        $this->assertSame(
+            'open_basedir: a fresh install would write inside storage',
+            STORAGE_PATH . '/config/app.php',
+            (string) ($report['install_target'] ?? '')
+        );
+        $this->assertSame(
+            'open_basedir: backups fall back inside storage',
+            STORAGE_PATH . '/backups',
+            (string) ($report['backup_directory'] ?? '')
+        );
+        $this->assertTrue(
+            'open_basedir: the installer lists the restriction',
+            (bool) ($report['requirement_shown'] ?? false)
+        );
+
+        // Temporary files: the system temp directory is out of bounds on such
+        // a host, which used to fail PDF export outright.
+        $this->assertSame(
+            'open_basedir: temporary files go inside storage',
+            STORAGE_PATH . '/tmp',
+            (string) ($report['temp_dir'] ?? '')
+        );
+        $this->assertTrue(
+            'open_basedir: a temporary file is created inside the root',
+            (bool) ($report['temp_file_inside_root'] ?? false),
+            (string) ($report['temp_file'] ?? 'none')
+        );
+        $this->assertTrue('open_basedir: a QR image is placed in a PDF', (bool) ($report['pdf_image_placed'] ?? false));
+        $this->assertTrue('open_basedir: the PDF is a PDF', (bool) ($report['pdf_is_pdf'] ?? false));
+        $this->assertGreaterThan(
+            'open_basedir: the PDF has content',
+            1000,
+            (float) ($report['pdf_bytes'] ?? 0)
+        );
+        $this->assertTrue(
+            'Logging: an unwritable log file falls back to the host error log',
+            (bool) ($report['log_fallback_ok'] ?? false)
+        );
+    }
+
+    /**
+     * Boot a child process under the restriction and read its report.
+     *
+     * @return array<string,mixed>|null null when a child cannot be started
+     */
+    private function restrictedReport(): ?array
+    {
+        $script = ROOT_PATH . '/tests/support/restricted-host.php';
+        if (!function_exists('exec') || !is_file($script) || PHP_BINARY === '') {
+            return null;
+        }
+
+        $command = escapeshellarg(PHP_BINARY)
+            . ' -d ' . escapeshellarg('open_basedir=' . ROOT_PATH . PATH_SEPARATOR . sys_get_temp_dir())
+            . ' ' . escapeshellarg($script) . ' 2>&1';
+
+        $output = [];
+        $status = 0;
+        @exec($command, $output, $status);
+        $decoded = json_decode(trim(implode("\n", $output)), true);
+
+        return is_array($decoded) ? $decoded : null;
     }
 
     private function schema(): void

@@ -789,8 +789,8 @@ final class PdfDocument
     /** Place a raw PNG string (used for the generated QR codes). */
     public function imageFromString(string $bytes, float $x, float $y, float $width, float $height): bool
     {
-        $temp = tempnam(sys_get_temp_dir(), 'pdfimg');
-        if ($temp === false) {
+        $temp = \App\Core\Path::tempFile('pdfimg');
+        if ($temp === null) {
             return false;
         }
         file_put_contents($temp, $bytes);

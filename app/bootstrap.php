@@ -8,9 +8,19 @@
 
 declare(strict_types=1);
 
-if (version_compare(PHP_VERSION, '8.0.0', '<')) {
+/*
+ * The floor is 8.1, not 8.0: readonly promoted properties, `new` in
+ * initialisers and array_is_list() are used throughout. On 8.0 those are parse
+ * errors in files loaded later, which reads as a blank 500 rather than a
+ * diagnosis - so the version is checked here, before anything else is loaded.
+ */
+if (version_compare(PHP_VERSION, '8.1.0', '<')) {
     http_response_code(500);
-    exit('This application requires PHP 8.0 or newer. Detected: ' . PHP_VERSION);
+    header('Content-Type: text/plain; charset=utf-8');
+    exit(
+        "This application requires PHP 8.1 or newer. Detected: " . PHP_VERSION . "\n"
+        . "On cPanel or aaPanel, switch the PHP version for this domain and reload.\n"
+    );
 }
 
 if (!defined('ROOT_PATH')) {

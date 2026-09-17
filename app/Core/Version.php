@@ -28,7 +28,7 @@ final class Version
             'version'      => '1.0.0',
             'name'         => 'Shubh Kankotri',
             'released_at'  => null,
-            'min_php'      => '8.0.0',
+            'min_php'      => '8.1.0',
             'schema'       => 1,
         ];
         $file = self::file();

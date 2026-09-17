@@ -141,9 +141,12 @@ A missing or wrong token returns **419** and the request is not executed. Cookie
 - Database credentials, the application key, the Gemini API key, the SMTP password and
   the GitHub token live in a file **outside the web root**:
   `../.invitation-secrets/app.php` (0640), with a deny-all `.htaccess` beside it as a
-  second line of defence. If the parent directory is not writable, the installer falls
-  back to `storage/config/app.php`, which `.htaccess` and the front controller both
-  block.
+  second line of defence. If the parent directory is not writable - or if
+  `open_basedir` is narrowed to the document root, which makes anything above it
+  unreachable and is normal on shared hosting - the installer falls back to
+  `storage/config/app.php`, which `.htaccess` and the front controller both block. The
+  installer's requirements screen and **System → Health** both say which location is in
+  use, so the weaker one is never silent.
 - API keys and tokens are encrypted at rest with AES-256-GCM
   (`app/Core/Crypto.php`); the key comes from the secret file, so a database dump on
   its own does not disclose them.

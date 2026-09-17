@@ -316,7 +316,8 @@ final class ArchiveExtractor
         }
         $allowedRoots = array_filter([
             realpath(STORAGE_PATH),
-            realpath(sys_get_temp_dir()),
+            // Only when this host lets us see it at all.
+            \App\Core\Path::isDir(sys_get_temp_dir()) ? realpath(sys_get_temp_dir()) : false,
         ]);
         $permitted = false;
         foreach ($allowedRoots as $root) {

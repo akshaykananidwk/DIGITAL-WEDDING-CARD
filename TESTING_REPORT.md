@@ -27,9 +27,9 @@ php bin/console health       # the 23 runtime checks
 ■ PDF, QR, calendar and sharing               60 checks    170 ms
 ■ Uploads and the media library               33 checks    173 ms
 ■ AI generator and recommender                38 checks     13 ms
-■ System, installer, backups and updates     129 checks  4 616 ms
+■ System, installer, backups and updates     152 checks  6 113 ms
 ──────────────────────────────────────────────────────────────────
-All 520 checks passed in 17.5 s across 9 cases
+All 543 checks passed in 18.6 s across 9 cases
 ```
 
 The runner has no dependencies — no Composer, no PHPUnit, no Node — so it runs on the
@@ -195,7 +195,8 @@ files but left the database alone. Both are covered by the suite now.
 | Target | Status |
 |---|---|
 | PHP 8.4 | Reference host. No deprecations emitted (two session INI settings are now applied only below 8.4) |
-| PHP 8.0–8.3 | Supported: no 8.1+ only syntax is used; `min_php` in `version.json` is enforced by the installer and the updater |
+| PHP 8.1–8.4 | 8.1 is the floor: `readonly` promoted properties, `new` in initialisers and `array_is_list()` are used throughout, so 8.0 cannot parse the code. `app/bootstrap.php` says so in plain text before any class loads, and `min_php` in `version.json` is enforced by the installer and the updater. Verified on 8.4.19. |
+| `open_basedir` hosts | Reproduced with `php -d open_basedir=<docroot>`: the secrets probe above the web root raised a warning, which this application treats as fatal, so every page — including `/install` — returned 500. Paths outside the restriction are now skipped rather than probed, secrets fall back to `storage/config/`, and the installer reports the restriction. |
 | MariaDB 10.11 | Reference database |
 | MySQL 5.7+ / MariaDB 10.3+ | Supported; `utf8mb4` throughout, `FULLTEXT` used where available |
 | SQLite | The same migrations run, which is how the schema is verified without a server |

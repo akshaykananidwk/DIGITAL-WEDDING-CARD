@@ -8,6 +8,7 @@ use App\Core\Auth;
 use App\Core\Config;
 use App\Core\Database;
 use App\Core\Logger;
+use App\Core\Path;
 use App\Core\Str;
 use App\Core\Version;
 use App\Repositories\BackupRepository;
@@ -49,20 +50,22 @@ final class BackupService
 
     public function directory(): string
     {
-        // Prefer a location outside the public web root.
+        // Prefer a location outside the public web root - unless open_basedir
+        // makes it unreachable, in which case asking about it would raise.
         $external = dirname(ROOT_PATH) . '/' . Config::EXTERNAL_DIR . '/backups';
-        if (is_dir($external) && is_writable($external)) {
-            return $external;
-        }
-        $parent = dirname($external);
-        if (is_dir($parent) && is_writable($parent) && (is_dir($external) || @mkdir($external, 0750, true))) {
-            return $external;
+        if (Path::allowed($external)) {
+            if (Path::isDir($external) && Path::isWritable($external)) {
+                return $external;
+            }
+            $parent = dirname($external);
+            if (Path::isDir($parent) && Path::isWritable($parent) && Path::makeDir($external, 0750)) {
+                return $external;
+            }
         }
 
         $internal = STORAGE_PATH . '/backups';
-        if (!is_dir($internal)) {
-            @mkdir($internal, 0755, true);
-        }
+        Path::makeDir($internal);
+
         return $internal;
     }
 

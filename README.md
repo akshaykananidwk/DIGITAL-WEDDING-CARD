@@ -6,7 +6,7 @@ parties. A host picks a design, fills in a guided form, and shares a living invi
 card on WhatsApp: countdown, map, photo gallery, RSVP, printable PDF and QR code, in
 Gujarati, Hindi or English.
 
-**It runs on ordinary PHP hosting.** Apache or Nginx, PHP 8.0+, MySQL or MariaDB.
+**It runs on ordinary PHP hosting.** Apache or Nginx, PHP 8.1+, MySQL or MariaDB.
 No Node.js, no Composer, no build step, no queue worker, no shell access required.
 The PDF writer, the QR encoder, the SMTP client and the archive-safety code are all
 implemented in the PHP that ships here.
@@ -87,7 +87,7 @@ php bin/console pdf:test
 ## Tests
 
 ```bash
-php tests/run.php                  # 520 checks, 9 cases, no dependencies
+php tests/run.php                  # 543 checks, 9 cases, no dependencies
 php tests/run.php Security         # one case
 php tests/run.php --json           # machine readable
 ```

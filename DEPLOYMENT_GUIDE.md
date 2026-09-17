@@ -1,6 +1,6 @@
 # Deployment guide
 
-The application is plain PHP. It needs Apache (or Nginx, or LiteSpeed), PHP 8.0 or
+The application is plain PHP. It needs Apache (or Nginx, or LiteSpeed), PHP 8.1 or
 newer and MySQL/MariaDB. **It does not need Node.js, Composer, a build step, a queue
 worker or shell access.** Everything — the PDF writer, the QR encoder, the SMTP
 client, the ZIP safety checks — is implemented in PHP that ships with the application.
@@ -11,7 +11,7 @@ client, the ZIP safety checks — is implemented in PHP that ships with the appl
 
 | | Minimum | Recommended |
 |---|---|---|
-| PHP | 8.0 | 8.2 or 8.3 |
+| PHP | 8.1 | 8.2 or 8.3 |
 | MySQL | 5.7 | MariaDB 10.5+ |
 | Disk | 300 MB | 2 GB (uploads and backups grow) |
 | Memory limit | 64 MB | 128 MB |
@@ -214,11 +214,27 @@ a full-text search across it in 4 ms, an A4 PDF with Gujarati text in ~45 ms, a 
 - [ ] Privacy policy and terms pages say what you actually do
       (**Admin → Pages**).
 
+## Reading an error reference
+
+Every 500 shows a reference such as `5254EDEE`. That is the key to the actual
+cause, which is never shown to a visitor:
+
+```bash
+grep -r 5254EDEE storage/logs/          # over SSH
+```
+
+Without SSH, open `storage/logs/app-<today>.log` in the panel's file manager
+and search for the reference. The line names the exception, the file and the
+line. When the application cannot write that file at all, the same message goes
+to the host's own PHP error log (cPanel: **Metrics → Errors**; aaPanel: the
+site's error log).
+
 ## Troubleshooting
 
 | Symptom | Cause and fix |
 |---|---|
-| 500 on every page | `storage/` not writable, or PHP below 8.0. Check `storage/logs/`. |
+| 500 on every page | `storage/` not writable, or PHP below 8.1 (8.0 and older cannot parse the code and say so in plain text before anything loads). Read `storage/logs/app-<date>.log` and search for the reference printed on the page; if that file is missing or unwritable, the same line is in the host's PHP error log instead (cPanel: **Metrics → Errors**). |
+| 500 before the installer opens | Usually `open_basedir` narrowed to the document root. The application detects it and keeps its secrets in `storage/config/` instead; the installer's requirements screen lists the restriction when one is in force. |
 | "Application already installed" during a first install | A stale `storage/installed.lock` or secret file from an earlier attempt. Remove both and retry. |
 | Blank page after upload | Dotfiles missing — `.htaccess` did not come across. Re-upload including hidden files. |
 | `/templates` works, `/invite/x` 404s | `mod_rewrite` off, or `AllowOverride None`. Enable both. |

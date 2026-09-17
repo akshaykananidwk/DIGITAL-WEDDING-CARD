@@ -58,13 +58,25 @@ final class Config
         }
     }
 
-    /** Candidate locations for the secret file, most preferred first. */
+    /**
+     * Candidate locations for the secret file, most preferred first.
+     *
+     * The first is outside the web root, which is where secrets belong. A host
+     * with `open_basedir` narrowed to the document root cannot see it at all,
+     * and asking would raise a warning, so such a candidate is left out
+     * entirely and the in-storage fallback (denied by .htaccess, and by the
+     * router, which never serves from storage/) is used instead.
+     */
     public static function secretCandidates(): array
     {
-        return [
-            dirname(ROOT_PATH) . '/' . self::EXTERNAL_DIR . '/app.php',
-            STORAGE_PATH . '/config/app.php',
-        ];
+        $candidates = [];
+        $external = dirname(ROOT_PATH) . '/' . self::EXTERNAL_DIR . '/app.php';
+        if (Path::allowed($external)) {
+            $candidates[] = $external;
+        }
+        $candidates[] = STORAGE_PATH . '/config/app.php';
+
+        return $candidates;
     }
 
     /** Path of the secret file currently in use (null when not installed). */
@@ -72,7 +84,7 @@ final class Config
     {
         if (self::$secretFile === null) {
             foreach (self::secretCandidates() as $candidate) {
-                if (is_file($candidate)) {
+                if (Path::isFile($candidate)) {
                     self::$secretFile = $candidate;
                     break;
                 }
@@ -85,15 +97,20 @@ final class Config
     public static function preferredSecretTarget(): string
     {
         $candidates = self::secretCandidates();
+        $fallback = $candidates[count($candidates) - 1];
         $external = $candidates[0];
+        if ($external === $fallback) {
+            return $fallback; // Outside the web root is not reachable here.
+        }
+
         $externalDir = dirname($external);
-        if (is_dir($externalDir) && is_writable($externalDir)) {
+        if (Path::isDir($externalDir) && Path::isWritable($externalDir)) {
             return $external;
         }
-        if (!is_dir($externalDir) && is_writable(dirname($externalDir))) {
+        if (!Path::isDir($externalDir) && Path::isWritable(dirname($externalDir))) {
             return $external;
         }
-        return $candidates[1];
+        return $fallback;
     }
 
     /** @return array<string,mixed>|null */
@@ -194,7 +211,7 @@ final class Config
     {
         $target ??= self::preferredSecretTarget();
         $dir = dirname($target);
-        if (!is_dir($dir) && !@mkdir($dir, 0750, true) && !is_dir($dir)) {
+        if (!Path::makeDir($dir, 0750)) {
             throw new \RuntimeException('Cannot create configuration directory: ' . $dir);
         }
 

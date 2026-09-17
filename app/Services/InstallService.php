@@ -10,6 +10,7 @@ use App\Core\Crypto;
 use App\Core\Database;
 use App\Core\Logger;
 use App\Core\Migrator;
+use App\Core\Path;
 use App\Core\Str;
 use App\Core\Url;
 use App\Core\Version;
@@ -89,10 +90,7 @@ final class InstallService
 
         foreach (self::WRITABLE_PATHS as $relative) {
             $absolute = ROOT_PATH . '/' . $relative;
-            if (!is_dir($absolute)) {
-                @mkdir($absolute, 0755, true);
-            }
-            $writable = is_dir($absolute) && is_writable($absolute);
+            $writable = Path::makeDir($absolute) && Path::isWritable($absolute);
             $groups['Directories'][] = $this->requirement(
                 $relative . '/',
                 $writable,
@@ -112,6 +110,19 @@ final class InstallService
                 : 'Secrets will be stored in storage/config, protected by .htaccess',
             false
         );
+
+        // A restriction the operator should know about: it decides where the
+        // secrets and the backups can live, and it is the usual reason a fresh
+        // deployment cannot reach anything above the document root.
+        if (Path::isRestricted()) {
+            $groups['Settings'][] = $this->requirement(
+                'open_basedir',
+                true,
+                'In effect (' . implode(', ', Path::restrictions()) . '). '
+                    . 'Secrets and backups stay inside storage/, which the web server is denied.',
+                false
+            );
+        }
 
         $groups['Settings'][] = $this->requirement(
             'Memory limit',

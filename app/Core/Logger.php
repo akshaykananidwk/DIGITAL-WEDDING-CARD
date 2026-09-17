@@ -72,7 +72,11 @@ final class Logger
     {
         $channel = preg_replace('/[^a-z0-9_\-]/i', '', $channel) ?: self::APP;
         $dir = self::dir();
-        if (!is_dir($dir) && !@mkdir($dir, 0755, true) && !is_dir($dir)) {
+        if (!Path::makeDir($dir)) {
+            // Nowhere of our own to write: hand it to the host's PHP error log
+            // instead, which is the one place an operator can still read on a
+            // deployment where storage/ is not writable.
+            self::fallback($level, $message);
             return;
         }
 
@@ -92,7 +96,22 @@ final class Logger
             PHP_EOL
         );
 
-        @file_put_contents($file, $line, FILE_APPEND | LOCK_EX);
+        if (@file_put_contents($file, $line, FILE_APPEND | LOCK_EX) === false) {
+            self::fallback($level, $message);
+        }
+    }
+
+    /**
+     * Last resort when the application's own log is unwritable.
+     *
+     * Deliberately terse: the message only, already scrubbed of secrets by the
+     * caller, so nothing sensitive lands in a log we do not control.
+     */
+    private static function fallback(string $level, string $message): void
+    {
+        // No dependencies here on purpose: this path runs when the
+        // filesystem is already misbehaving.
+        @error_log('[invitation-saas] ' . $level . ': ' . $message);
     }
 
     private static function rotateIfNeeded(string $file): void
