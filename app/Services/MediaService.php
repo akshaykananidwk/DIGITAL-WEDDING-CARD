@@ -279,10 +279,31 @@ final class MediaService
             throw new \RuntimeException($this->uploadErrorMessage($error));
         }
         $tmp = (string) ($file['tmp_name'] ?? '');
-        if ($tmp === '' || !is_uploaded_file($tmp)) {
+        if ($tmp === '' || !$this->isAcceptedUpload($tmp)) {
             Logger::security('Rejected a file that was not a genuine HTTP upload');
             throw new \RuntimeException('The upload could not be verified. Please try again.');
         }
+    }
+
+    /**
+     * Is this a file PHP itself received as an upload?
+     *
+     * The check exists so a crafted request cannot name an arbitrary local
+     * path. There is no request on the command line, so the test suite is
+     * allowed to hand in a file it created inside storage/tmp - and only
+     * there, only on the CLI, and only when the suite says so.
+     */
+    private function isAcceptedUpload(string $tmp): bool
+    {
+        if (is_uploaded_file($tmp)) {
+            return true;
+        }
+        if (PHP_SAPI !== 'cli' || !defined('APP_TESTING') || APP_TESTING !== true) {
+            return false;
+        }
+        $real = realpath($tmp);
+        $sandbox = realpath(STORAGE_PATH . '/tmp');
+        return $real !== false && $sandbox !== false && str_starts_with($real, $sandbox . DIRECTORY_SEPARATOR);
     }
 
     private function assertSize(array $file, int $maxBytes): void

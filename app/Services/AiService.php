@@ -84,8 +84,7 @@ final class AiService
         if (!$result['ok']) {
             return $result;
         }
-        $result['text'] = $this->stripInventedFacts($result['text'], $facts);
-        return $result;
+        return $this->guard($result, $facts);
     }
 
     /** Short WhatsApp-friendly sharing message. */
@@ -97,11 +96,7 @@ final class AiService
             . "\nUse ONLY these facts:\n" . $this->factsBlock($facts)
             . "\nReturn plain text, no markdown, at most 3 short lines.";
 
-        $result = $this->complete($prompt, self::ACTION_WHATSAPP, $locale);
-        if ($result['ok']) {
-            $result['text'] = $this->stripInventedFacts($result['text'], $facts);
-        }
-        return $result;
+        return $this->guard($this->complete($prompt, self::ACTION_WHATSAPP, $locale), $facts);
     }
 
     /** A one or two line welcome line for the top of the card. */
@@ -112,7 +107,7 @@ final class AiService
             . "\nUse ONLY these facts:\n" . $this->factsBlock($facts)
             . "\nReturn one line of plain text.";
 
-        return $this->complete($prompt, self::ACTION_MESSAGE, $locale);
+        return $this->guard($this->complete($prompt, self::ACTION_MESSAGE, $locale), $facts);
     }
 
     public function generateRsvpMessage(array $facts, string $locale = 'en'): array
@@ -122,7 +117,7 @@ final class AiService
             . "\nUse ONLY these facts:\n" . $this->factsBlock($facts)
             . "\nReturn plain text.";
 
-        return $this->complete($prompt, self::ACTION_RSVP, $locale);
+        return $this->guard($this->complete($prompt, self::ACTION_RSVP, $locale), $facts);
     }
 
     /** Translate wording the user already approved into another language. */
@@ -135,7 +130,10 @@ final class AiService
             . "do not add or remove information; keep the line breaks; return only the translation.\n\n"
             . "TEXT:\n" . mb_substr($text, 0, 2000);
 
-        return $this->complete($prompt, self::ACTION_TRANSLATE, $targetLocale);
+        return $this->guard(
+            $this->complete($prompt, self::ACTION_TRANSLATE, $targetLocale),
+            ['source' => $text]
+        );
     }
 
     // ------------------------------------------------------------------
@@ -233,15 +231,48 @@ final class AiService
     // ------------------------------------------------------------------
 
     /**
+     * Apply the fact guard to a completion result.
+     *
+     * When the guard removes everything, the call is reported as unusable
+     * rather than handed back empty, so the builder shows a clear message
+     * instead of silently clearing the field.
+     *
+     * @param array{ok:bool,message:string,text:string,tokens:int} $result
+     * @param array<string,mixed> $facts
+     * @return array{ok:bool,message:string,text:string,tokens:int}
+     */
+    private function guard(array $result, array $facts): array
+    {
+        if (!$result['ok']) {
+            return $result;
+        }
+        $filtered = $this->stripInventedFacts((string) $result['text'], $facts);
+        if (trim($filtered) === '') {
+            return [
+                'ok'      => false,
+                'message' => 'The wording could not be used because it contained details you had not entered. '
+                    . 'Please try again, or write it yourself.',
+                'text'    => '',
+                'tokens'  => (int) $result['tokens'],
+            ];
+        }
+        $result['text'] = $filtered;
+        return $result;
+    }
+
+    /**
      * Remove sentences containing a date, time or phone number that was not
      * supplied. The model is told not to invent facts; this makes it true.
+     *
+     * Public because it is the guarantee the rest of the application relies
+     * on, and because it is worth testing on its own.
      */
-    private function stripInventedFacts(string $text, array $facts): string
+    public function stripInventedFacts(string $text, array $facts): string
     {
         $supplied = [];
         foreach ($facts as $value) {
             if (is_scalar($value)) {
-                $supplied[] = mb_strtolower((string) $value);
+                $supplied[] = mb_strtolower(self::normaliseDigits((string) $value));
             }
         }
         $suppliedBlob = implode(' | ', $supplied);
@@ -249,12 +280,16 @@ final class AiService
         $sentences = preg_split('/(?<=[.!?।])\s+/u', $text) ?: [$text];
         $kept = [];
         foreach ($sentences as $sentence) {
-            $hasNumber = preg_match('/\b\d{1,4}\b/u', $sentence) === 1;
+            // Gujarati and Devanagari digits are compared as their Western
+            // equivalents: a translated date is the same fact, differently
+            // written, and must not be mistaken for an invented one.
+            $comparable = self::normaliseDigits($sentence);
+            $hasNumber = preg_match('/\d{1,4}/', $comparable) === 1;
             if (!$hasNumber) {
                 $kept[] = $sentence;
                 continue;
             }
-            preg_match_all('/\d{1,4}/u', $sentence, $matches);
+            preg_match_all('/\d{1,4}/', $comparable, $matches);
             $allKnown = true;
             foreach ($matches[0] as $number) {
                 if (!str_contains($suppliedBlob, (string) $number)) {
@@ -269,8 +304,28 @@ final class AiService
             Logger::info('AI output: dropped a sentence containing an unsupported number', [], Logger::API);
         }
 
-        $result = trim(implode(' ', $kept));
-        return $result !== '' ? $result : trim($text);
+        // If every sentence was dropped the model invented all of it, so
+        // nothing is returned. Falling back to the original text here would
+        // undo the whole guard in exactly the case it exists for.
+        return trim(implode(' ', $kept));
+    }
+
+    /**
+     * Rewrite Indic digits as Western ones so the same number compares equal
+     * however it is written (૨૫ / २५ / ٢٥ / 25).
+     */
+    public static function normaliseDigits(string $text): string
+    {
+        static $map = null;
+        if ($map === null) {
+            $map = [];
+            foreach ([0x0AE6, 0x0966, 0x0660, 0x06F0, 0x09E6, 0x0BE6] as $zero) {
+                for ($digit = 0; $digit <= 9; $digit++) {
+                    $map[mb_chr($zero + $digit, 'UTF-8')] = (string) $digit;
+                }
+            }
+        }
+        return strtr($text, $map);
     }
 
     // ------------------------------------------------------------------

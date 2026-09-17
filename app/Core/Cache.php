@@ -58,8 +58,17 @@ final class Cache
     public static function put(string $key, mixed $value, ?int $ttl = null): void
     {
         $ttl ??= (int) Config::get('cache.ttl', 600);
+
+        // A caller that computes a TTL from a deadline can hand us zero or a
+        // negative number; that means "already stale", so nothing is stored
+        // and any previous entry goes away rather than being served forever.
+        if ($ttl <= 0) {
+            self::forget($key);
+            return;
+        }
+
         $payload = serialize([
-            'expires' => $ttl > 0 ? time() + $ttl : 0,
+            'expires' => time() + $ttl,
             'value'   => $value,
         ]);
         $path = self::path($key);
