@@ -25,6 +25,17 @@ $fontStack = match ((string) ($invitation['language'] ?? 'en')) {
 
 $events = $c->eventSchedule();
 $hero = $c->heroPhotoUrl();
+/*
+ * The QR is embedded as a data URI rather than linked: an HTML PDF engine
+ * renders this file with remote fetching switched off, and a printed card is
+ * the one place where a scannable link earns its space.
+ */
+$qr = '';
+try {
+    $qr = (new App\Services\QrService())->dataUri($c->publicUrl(), 5);
+} catch (Throwable) {
+    // A QR is a nicety; never fail the export over it.
+}
 ?>
 <!doctype html>
 <html lang="<?= e((string) ($invitation['language'] ?? 'en')) ?>">
@@ -139,6 +150,13 @@ $hero = $c->heroPhotoUrl();
         <div class="block">
             <p class="label"><?= e(__('invite.contact')) ?></p>
             <p class="muted"><?= $contact ?> <?= $c->get('contact_phone') ?></p>
+        </div>
+    <?php endif; ?>
+
+    <?php if ($qr !== ''): ?>
+        <div class="block">
+            <img class="qr" src="<?= e($qr) ?>" alt="">
+            <p class="muted"><?= e(__('invite.scan_to_open')) ?></p>
         </div>
     <?php endif; ?>
 

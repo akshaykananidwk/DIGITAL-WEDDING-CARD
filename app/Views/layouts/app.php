@@ -18,10 +18,13 @@ $isSignedIn = $user !== null;
 $currentPath = App\Core\Request::instance()->path();
 $flash = $flash ?? [];
 try {
-    $footerPages = (new App\Repositories\PageRepository())->footerLinks();
+    $pages       = new App\Repositories\PageRepository();
+    $footerPages = $pages->footerLinks();
+    $headerPages = $pages->headerLinks();
 } catch (Throwable) {
-    // A footer must never take a page down.
+    // Navigation must never take a page down.
     $footerPages = [];
+    $headerPages = [];
 }
 $brandPrimary = (string) (setting('brand_primary') ?: '#C8102E');
 ?>
@@ -63,6 +66,10 @@ $brandPrimary = (string) (setting('brand_primary') ?: '#C8102E');
                 <?php if ($isSignedIn): ?>
                     <a class="sk-nav-link <?= $currentPath === '/dashboard' ? 'active' : '' ?>" href="<?= e(url('dashboard')) ?>"><?= e(__('nav.dashboard')) ?></a>
                 <?php endif; ?>
+                <?php foreach ($headerPages as $page): ?>
+                    <a class="sk-nav-link <?= $currentPath === '/page/' . $page['slug'] ? 'active' : '' ?>"
+                       href="<?= e(url('page/' . $page['slug'])) ?>"><?= e($page['title']) ?></a>
+                <?php endforeach; ?>
             </div>
 
             <!-- Language switcher -->

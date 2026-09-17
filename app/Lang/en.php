@@ -161,6 +161,8 @@ return [
         'share_hint' => 'Send the link on WhatsApp, or share the QR code and PDF.',
         'full_link' => 'Full link',
         'short_link' => 'Short link',
+        'new_short_code' => 'New code',
+        'short_code_help' => 'A new code stops the old short link from working.',
         'whatsapp_message' => 'Ready-to-send message',
         'qr_print' => 'Print size',
         'qr_venue' => 'Venue directions QR',
@@ -170,6 +172,7 @@ return [
 
     'invite' => [
         'save_the_date'    => 'Save the date',
+        'scan_to_open'     => 'Scan to open the invitation',
         'countdown'        => 'Counting down to the big day',
         'days'             => 'Days',
         'hours'            => 'Hours',

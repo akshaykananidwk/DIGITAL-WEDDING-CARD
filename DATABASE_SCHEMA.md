@@ -71,7 +71,10 @@ Indexes: `email` (unique), `role_id`, `status`, `created_at`, `deleted_at`.
 
 ### `user_roles`
 Composite `(user_id, role_id)` for the rare case of a second role; the primary role
-stays on `users.role_id` so the common lookup is one join-free read.
+stays on `users.role_id` so the common lookup is one join-free read. A second role is
+additive: `Auth::permissions()` reads the union of the primary role and every row here,
+so an extra role only ever grants. Rows are added directly in the database — the admin
+screens assign the primary role only.
 
 ### `password_resets`
 `selector` (unique), `validator_hash`, `user_id`, `email`, `expires_at`, `ip_hash`,

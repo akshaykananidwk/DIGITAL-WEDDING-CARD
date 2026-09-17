@@ -148,6 +148,50 @@ final class AuthTest extends TestCase
         $this->assertFalse('RBAC: a plain user is not a super admin', Auth::isSuperAdmin());
         $this->assertFalse('RBAC: a plain user cannot edit settings', Auth::can('settings.edit'));
         Auth::logout();
+
+        $this->secondaryRoles();
+    }
+
+    /**
+     * A second role held through user_roles is additive: it grants its own
+     * permissions without taking away the primary role's.
+     */
+    private function secondaryRoles(): void
+    {
+        $db = Database::instance();
+        $editor = (new RoleRepository())->findBySlug('editor');
+        if ($editor === null) {
+            $this->pass('RBAC: skipped, no editor role to add');
+            return;
+        }
+
+        $granted = (new RoleRepository())->permissionSlugs((int) $editor['id']);
+        if ($granted === []) {
+            $this->pass('RBAC: skipped, the editor role holds no permissions');
+            return;
+        }
+        $probe = (string) $granted[0];
+
+        Auth::login((array) $this->users->find($this->userId));
+        $this->assertFalse('RBAC: the extra permission is absent to begin with', Auth::can($probe));
+        Auth::logout();
+
+        $db->insert('user_roles', ['user_id' => $this->userId, 'role_id' => (int) $editor['id']]);
+        try {
+            Auth::login((array) $this->users->find($this->userId));
+            $this->assertTrue('RBAC: a secondary role grants its permissions', Auth::can($probe));
+            $this->assertFalse(
+                'RBAC: a secondary role does not smuggle in super admin',
+                Auth::isSuperAdmin()
+            );
+            Auth::logout();
+        } finally {
+            $db->delete('user_roles', ['user_id' => $this->userId]);
+        }
+
+        Auth::login((array) $this->users->find($this->userId));
+        $this->assertFalse('RBAC: removing the role removes the permission', Auth::can($probe));
+        Auth::logout();
     }
 
     private function ownership(): void

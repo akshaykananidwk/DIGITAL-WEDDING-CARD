@@ -80,6 +80,9 @@ $view->extend('layouts.admin');
                                 <span class="text-muted" style="font-size:.7rem">
                                     <?= number_format(((int) $item['size']) / 1024) ?> KB
                                     <?php if ((int) $item['is_library'] === 1): ?>· library<?php endif; ?>
+                                    <?php if ((int) ($item['usage_count'] ?? 0) > 0): ?>
+                                        · used <?= (int) $item['usage_count'] ?>×
+                                    <?php endif; ?>
                                 </span>
                             </figcaption>
 

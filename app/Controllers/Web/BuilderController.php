@@ -420,10 +420,16 @@ final class BuilderController extends Controller
             ]);
             (new \App\Repositories\UserRepository())->addStorageUsed((int) Auth::id(), $stored['size']);
         } elseif ($libraryId > 0) {
+            // Only a shared library track, or the person's own upload: an id
+            // from somewhere else must not attach another user's file.
             $track = (new MediaRepository())->find($libraryId);
-            if ($track === null || (string) $track['kind'] !== 'audio') {
+            $mayUse = $track !== null
+                && (string) $track['kind'] === 'audio'
+                && ((int) $track['is_library'] === 1 || (int) $track['user_id'] === (int) Auth::id());
+            if (!$mayUse) {
                 return $this->error('That track is not available.', 422);
             }
+            (new MediaRepository())->bumpUsage((int) $track['id']);
             $this->music->replace($invitationId, [
                 'path'       => (string) $track['path'],
                 'title'      => (string) ($track['title'] ?: $track['original_name']),
@@ -558,6 +564,25 @@ final class BuilderController extends Controller
             return $this->success(['slug' => $slug, 'url' => Url::invite($slug)], 'Link updated.');
         }
         $this->flash('success', 'Your invitation link is now ' . Url::invite($slug));
+        return $this->redirect('builder/' . $invitation['id'] . '/share');
+    }
+
+    /**
+     * Issue a fresh short code.
+     *
+     * Wanted when a short link has travelled further than intended: the old
+     * code stops resolving the moment the new one is stored.
+     */
+    public function newShortCode(Request $request): Response
+    {
+        $invitation = $this->invitations->findOwnedOrFail($request->int('id'));
+        $code = $this->invitations->regenerateShortCode($invitation);
+        $url = Url::shortInvite($code);
+
+        if ($request->expectsJson()) {
+            return $this->success(['short_code' => $code, 'url' => $url], 'Short link updated.');
+        }
+        $this->flash('success', 'Your short link is now ' . $url);
         return $this->redirect('builder/' . $invitation['id'] . '/share');
     }
 

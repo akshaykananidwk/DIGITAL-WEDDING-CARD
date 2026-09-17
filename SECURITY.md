@@ -100,6 +100,8 @@ A missing or wrong token returns **419** and the request is not executed. Cookie
 - Role-based, with 51 named permissions across four seeded roles. Checks are
   `Auth::can('permission.slug')`, enforced by the `can:` middleware on the route
   *and* re-checked in the controller for anything destructive.
+- A permission set is the union of the user's primary role and any secondary roles in
+  `user_roles`, so an extra role grants and never revokes.
 - The super-admin role holds every permission implicitly, so a permission introduced
   by a future update is never silently withheld.
 - **IDOR:** every owner-scoped read goes through `findOwned($id, $userId)` or
@@ -109,6 +111,9 @@ A missing or wrong token returns **419** and the request is not executed. Cookie
   rewrite someone's wording.
 - Route parameters take precedence over body and query in `Request::input()`, so a
   posted `id` field cannot redirect a write away from the resource named in the URL.
+- An id picked from a list is re-checked against what that list may contain: a music
+  `library_id` is accepted only for a shared library track or the person's own upload,
+  so another account's audio cannot be attached by guessing its id.
 
 ## Uploads
 

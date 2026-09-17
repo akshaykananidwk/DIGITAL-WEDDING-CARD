@@ -21,15 +21,15 @@ php bin/console health       # the 23 runtime checks
 ```
 ■ Security                                    44 checks    939 ms
 ■ Two-step sign-in                            35 checks  6 544 ms
-■ Authentication and authorisation            25 checks  1 065 ms
+■ Authentication and authorisation            29 checks  1 065 ms
 ■ Templates and the engine                    79 checks  2 810 ms
-■ Invitations, slugs and RSVP                 53 checks    313 ms
-■ PDF, QR, calendar and sharing               53 checks    170 ms
+■ Invitations, slugs and RSVP                 57 checks    313 ms
+■ PDF, QR, calendar and sharing               60 checks    170 ms
 ■ Uploads and the media library               29 checks    115 ms
 ■ AI generator and recommender                38 checks     13 ms
 ■ System, installer, backups and updates     129 checks  4 616 ms
 ──────────────────────────────────────────────────────────────────
-All 492 checks passed in 17.5 s across 9 cases
+All 500 checks passed in 17.6 s across 9 cases
 ```
 
 The runner has no dependencies — no Composer, no PHPUnit, no Node — so it runs on the
@@ -112,6 +112,8 @@ produced file, not just by a 200 response.
 | Publishing | Refused while required fields are empty, with the missing fields named; succeeds once filled; `published_at` set |
 | Slug change | `/invite/suite-renamed-card` served immediately; a traversal attempt sanitised to a safe slug; reserved and too-short slugs refused |
 | Short link | `/i/PWZLQU` → **301** to the full URL, QR scan counted |
+| Short link reissued | `POST /builder/1/short-code` replaced that code with `/i/VWE6HH` (**301**), after which the earlier `/i/PWZLQU` returned **404** — a short link that has travelled too far can be revoked |
+| Secondary roles | A role added in `user_roles` granted its permissions on the next sign-in without conferring super admin, and removing the row took them away again |
 | RSVP | Guest submission stored, summary counts and guest total correct, a repeat from the same visitor updates rather than duplicates, CSV export contains the guest and no IP address |
 | Share tracking | `POST /invite/{slug}/share` recorded per channel; counters incremented |
 | Analytics | Views, unique views, shares and downloads recorded; 30-day series; device, browser, referrer and channel breakdowns; CSV export |
@@ -124,7 +126,7 @@ produced file, not just by a 200 response.
 | Data export | `GET /profile/export` returns the account, invitations and responses as JSON |
 | Admin CRUD | Users, roles and permissions, categories and subcategories, templates, template fields, pages, media, fonts, settings, feature flags |
 | Template generator | 1,000 templates generated in **2.0 s**; catalogue reached 1,051; every slug unique; removal restored the original 51 |
-| Media library | Deleting an in-use asset refused with the usage listed; deleting with explicit confirmation removed the row and the file |
+| Media library | Deleting an in-use asset refused with the usage listed; deleting with explicit confirmation removed the row and the file; choosing a shared library track raised its use count, while another user's audio id was refused **422** |
 | Cron | `cleanup` and `analytics` ran and recorded their runs; an unknown task is refused |
 | Backups | Database (518 KB) and full (1.8 MB) created; checksum verified; restore put a tampered setting and a deleted RSVP row back |
 | Email | `log` driver writes to `storage/logs/mail-*.log`; SMTP path exercised through the test-send screen |

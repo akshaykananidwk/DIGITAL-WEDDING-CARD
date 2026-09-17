@@ -65,6 +65,18 @@ final class AiApiController extends Controller
             : $this->error($result['message'], 422);
     }
 
+    /** Wording for the RSVP request on the card. */
+    public function rsvp(Request $request): Response
+    {
+        if (!$this->available()) {
+            return $this->error('The AI helper is not available right now.', 503);
+        }
+        $result = $this->ai->generateRsvpMessage($this->facts($request), $this->locale($request));
+        return $result['ok']
+            ? $this->success(['text' => $result['text']], $result['message'])
+            : $this->error($result['message'], 422);
+    }
+
     public function translate(Request $request): Response
     {
         if (!$this->available()) {

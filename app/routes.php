@@ -140,6 +140,7 @@ $router->group('', ['installed', 'maintenance', 'auth'], static function ($route
     $router->post('/builder/{id:\d+}/publish', [Web\BuilderController::class, 'publish'], ['csrf']);
     $router->post('/builder/{id:\d+}/unpublish', [Web\BuilderController::class, 'unpublish'], ['csrf']);
     $router->post('/builder/{id:\d+}/slug', [Web\BuilderController::class, 'changeSlug'], ['csrf']);
+    $router->post('/builder/{id:\d+}/short-code', [Web\BuilderController::class, 'newShortCode'], ['csrf']);
     $router->post('/builder/{id:\d+}/duplicate', [Web\BuilderController::class, 'duplicate'], ['csrf']);
     $router->delete('/builder/{id:\d+}', [Web\BuilderController::class, 'destroy'], ['csrf']);
     $router->get('/builder/{id:\d+}/preview', [Web\BuilderController::class, 'preview'], [], 'builder.preview');
@@ -313,6 +314,7 @@ $router->group('api/v1', ['installed'], static function ($router): void {
         $router->post('/ai/wording', [Api\AiApiController::class, 'wording'], ['csrf', 'throttle:ai,20,3600']);
         $router->post('/ai/message', [Api\AiApiController::class, 'message'], ['csrf', 'throttle:ai,20,3600']);
         $router->post('/ai/whatsapp', [Api\AiApiController::class, 'whatsapp'], ['csrf', 'throttle:ai,20,3600']);
+        $router->post('/ai/rsvp', [Api\AiApiController::class, 'rsvp'], ['csrf', 'throttle:ai,20,3600']);
         $router->post('/ai/translate', [Api\AiApiController::class, 'translate'], ['csrf', 'throttle:ai,20,3600']);
         $router->post('/ai/recommend', [Api\AiApiController::class, 'recommend'], ['csrf', 'throttle:ai,40,3600']);
     });

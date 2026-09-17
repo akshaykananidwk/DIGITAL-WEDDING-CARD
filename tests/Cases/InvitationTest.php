@@ -210,6 +210,22 @@ final class InvitationTest extends TestCase
             fn () => $this->service->changeSlug($invitation, 'admin'),
             'reserved'
         );
+
+        // A fresh short code retires the old one: the short link is the part
+        // that gets forwarded furthest, so it has to be revocable.
+        $before = (string) $this->invitations->findOwned((int) $invitation['id'], $this->userId)['short_code'];
+        $after = $this->service->regenerateShortCode($invitation);
+        $this->assertFalse('Short code: regenerating changes it', $before === $after);
+        $this->assertMatches('Short code: the new code is URL-safe', '/^[A-Z0-9]{4,12}$/', $after);
+        $this->assertTrue(
+            'Short code: the old code no longer resolves',
+            $this->invitations->findByShortCode($before) === null
+        );
+        $this->assertSame(
+            'Short code: the new code resolves to the same invitation',
+            (int) $invitation['id'],
+            (int) ($this->invitations->findByShortCode($after)['id'] ?? 0)
+        );
     }
 
     private function rsvp(array $invitation): void

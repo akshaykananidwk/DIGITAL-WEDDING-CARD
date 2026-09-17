@@ -68,22 +68,13 @@ final class UserRepository extends BaseRepository
 
     /**
      * Union of the primary role's permissions and any secondary roles held by
-     * the user. Cached per request by Auth.
+     * the user in user_roles. Cached per request by Auth.
+     *
+     * A single role's permissions are read through RoleRepository instead, so
+     * the admin screens and the runtime check never drift apart.
      *
      * @return array<int,string>
      */
-    public function permissionsForRole(int $roleId): array
-    {
-        return array_map('strval', $this->db->column(
-            'SELECT DISTINCT p.slug
-             FROM ' . $this->db->wrap($this->db->table('role_permissions')) . ' rp
-             JOIN ' . $this->db->wrap($this->db->table('permissions')) . ' p ON p.id = rp.permission_id
-             WHERE rp.role_id = :role',
-            ['role' => $roleId]
-        ));
-    }
-
-    /** @return array<int,string> */
     public function permissionsForUser(int $userId): array
     {
         return array_map('strval', $this->db->column(

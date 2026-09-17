@@ -285,7 +285,9 @@ final class Auth
             return self::$permissions = [];
         }
         try {
-            self::$permissions = (new UserRepository())->permissionsForRole((int) $user['role_id']);
+            // The union of the primary role and any secondary roles held in
+            // user_roles: an extra role is additive, never a replacement.
+            self::$permissions = (new UserRepository())->permissionsForUser((int) $user['id']);
         } catch (\Throwable) {
             self::$permissions = [];
         }

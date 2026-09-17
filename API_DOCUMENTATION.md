@@ -226,6 +226,7 @@ address, with a configurable daily cap.
 | `POST /ai/wording` | Invitation wording from the facts you supply |
 | `POST /ai/message` | A short welcome line |
 | `POST /ai/whatsapp` | A WhatsApp-ready sharing message |
+| `POST /ai/rsvp` | Wording for the RSVP request printed on the card |
 | `POST /ai/translate` | Translate approved wording into another language |
 | `POST /ai/recommend` | Template suggestions for a brief |
 

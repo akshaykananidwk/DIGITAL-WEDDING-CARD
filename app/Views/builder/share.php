@@ -52,6 +52,15 @@ $isPublished = (string) $invitation['status'] === 'published';
                         <i class="bi bi-clipboard me-1" aria-hidden="true"></i><?= e(__('common.copy')) ?>
                     </button>
                 </div>
+                <form class="mb-3" method="post"
+                      action="<?= e(url('builder/' . $invitation['id'] . '/short-code')) ?>"
+                      data-sk-confirm="<?= eattr(__('builder.short_code_help')) ?>">
+                    <?= csrf_field() ?>
+                    <button class="btn btn-sm btn-outline-secondary" type="submit">
+                        <i class="bi bi-arrow-repeat me-1" aria-hidden="true"></i><?= e(__('builder.new_short_code')) ?>
+                    </button>
+                    <span class="text-muted small ms-2"><?= e(__('builder.short_code_help')) ?></span>
+                </form>
 
                 <label class="form-label small mb-1" for="share-message"><?= e(__('builder.whatsapp_message')) ?></label>
                 <textarea class="form-control mb-2" id="share-message" rows="5" readonly><?= e((string) $share['message']) ?></textarea>
