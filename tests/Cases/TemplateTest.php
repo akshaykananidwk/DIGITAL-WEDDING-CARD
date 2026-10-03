@@ -39,6 +39,7 @@ final class TemplateTest extends TestCase
         $this->placeholders();
         $this->components();
         $this->designVariety();
+        $this->opening();
         $this->suggestions();
         $this->scalability();
     }
@@ -355,6 +356,123 @@ final class TemplateTest extends TestCase
                 $pair[0]['slug'] . ' vs ' . $pair[1]['slug']
             );
         }
+    }
+
+    /**
+     * The opening: how the card arrives.
+     *
+     * Four of them, chosen by the style pack, all ending with the card turning
+     * and coming forward. Checked as markup and CSS rather than as a video:
+     * that the template's own opening reaches the page, that each one's parts
+     * are actually there to animate, and that a reader who wants no animation
+     * is never trapped behind it.
+     */
+    private function opening(): void
+    {
+        $db = Database::instance();
+        $engine = new TemplateEngine();
+
+        // Every pack names an opening, and only a known one.
+        $allowed = TemplateContext::STYLE_AXES['opening'];
+        foreach (ThemePalettes::stylePacks() as $slug => $pack) {
+            $this->assertTrue(
+                'Opening: pack ' . $slug . ' names a known opening',
+                in_array($pack['opening'] ?? '', $allowed, true),
+                (string) ($pack['opening'] ?? 'missing')
+            );
+        }
+
+        // All four are in use across the catalogue, so a guest who gets two
+        // invitations does not see the same arrival twice.
+        $used = [];
+        foreach ($db->select(
+            'SELECT theme FROM ' . $db->wrap($db->table('templates')) . ' WHERE deleted_at IS NULL'
+        ) as $row) {
+            $theme = is_array($row['theme']) ? $row['theme'] : json_decode((string) $row['theme'], true);
+            if (is_array($theme) && isset($theme['opening'])) {
+                $used[(string) $theme['opening']] = true;
+            }
+        }
+        foreach ($allowed as $opening) {
+            $this->assertTrue('Opening: the catalogue uses the ' . $opening . ' opening', isset($used[$opening]));
+        }
+
+        // The markup each opening needs, rendered through the real view.
+        $invitation = $db->first(
+            'SELECT * FROM ' . $db->wrap($db->table('invitations')) . ' WHERE deleted_at IS NULL LIMIT 1'
+        );
+        if ($invitation === null) {
+            $this->pass('Opening: skipped rendering, no invitation present');
+            return;
+        }
+        $row = (array) (new \App\Repositories\InvitationRepository())->find((int) $invitation['id']);
+        $templateId = (int) $row['template_id'];
+        $templates = new TemplateRepository();
+        $original = (string) $db->value(
+            'SELECT theme FROM ' . $db->wrap($db->table('templates')) . ' WHERE id = :id',
+            ['id' => $templateId]
+        );
+
+        $parts = [
+            'envelope' => ['inv-open--envelope', 'inv-envelope__flap', 'inv-envelope__seal'],
+            'doors'    => ['inv-open--doors', 'inv-door--left', 'inv-door--right'],
+            'scroll'   => ['inv-open--scroll', 'inv-scroll__rod--top', 'inv-letter--scroll'],
+            'fold'     => ['inv-open--fold', 'inv-wing--left', 'inv-fold__motif'],
+        ];
+
+        try {
+            foreach ($parts as $opening => $expected) {
+                $theme = json_decode($original, true);
+                $theme['opening'] = $opening;
+                $db->update('templates', ['theme' => json_encode($theme)], ['id' => $templateId]);
+                $templates->flushDefinition($templateId);
+
+                $context = $engine->context(
+                    (array) (new \App\Repositories\InvitationRepository())->find((int) $invitation['id']),
+                    null,
+                    true
+                );
+                $this->assertSame(
+                    'Opening: the ' . $opening . ' opening reaches the context',
+                    $opening,
+                    $context->style('opening')
+                );
+
+                $html = \App\Core\View::make('invite.partials.cover', ['c' => $context])->render();
+                foreach ($expected as $needle) {
+                    $this->assertContains(
+                        'Opening: the ' . $opening . ' markup has ' . $needle,
+                        $needle,
+                        $html
+                    );
+                }
+                $this->assertContains('Opening: ' . $opening . ' can be opened', 'data-inv-open', $html);
+                $this->assertContains('Opening: ' . $opening . ' can be skipped', 'data-inv-skip-button', $html);
+                $this->assertContains(
+                    'Opening: ' . $opening . ' is reachable by keyboard',
+                    'tabindex="0"',
+                    $html
+                );
+            }
+        } finally {
+            $db->update('templates', ['theme' => $original], ['id' => $templateId]);
+            $templates->flushDefinition($templateId);
+        }
+
+        // The stylesheet has to carry the move the whole sequence is for, and
+        // must stand down for a reader who asked for less motion.
+        $css = (string) file_get_contents(ROOT_PATH . '/assets/css/invite.css');
+        $this->assertContains('Opening: the forward flight is defined', '@keyframes inv-forward', $css);
+        $this->assertContains('Opening: the invitation rises to meet it', '@keyframes inv-arrive', $css);
+        $this->assertContains(
+            'Opening: reduced motion hides the cover',
+            '.inv-cover { display: none !important; }',
+            $css
+        );
+
+        $js = (string) file_get_contents(ROOT_PATH . '/assets/js/invite.js');
+        $this->assertContains('Opening: the script honours reduced motion', 'reducedMotion', $js);
+        $this->assertContains('Opening: the sequence has a forward stage', 'is-forward', $js);
     }
 
     /** The gallery search box's suggestions. */

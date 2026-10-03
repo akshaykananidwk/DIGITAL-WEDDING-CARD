@@ -58,43 +58,86 @@
     // ------------------------------------------------------------------
 
     function initCover() {
-        const cover = document.querySelector('.inv-cover');
+        const cover = document.querySelector('[data-inv-cover]');
         if (!cover) { return; }
 
+        const root = document.querySelector('.inv-root');
         const skipRequested = cover.getAttribute('data-inv-skip') === '1';
+
+        // Asked for no animation, or asked the browser for less motion: the
+        // card is what they came for, so give it to them straight away.
         if (skipRequested || reducedMotion) {
-            cover.remove();
-            document.body.classList.remove('inv-locked');
+            dismiss(true);
             return;
         }
 
         document.body.classList.add('inv-locked');
 
+        let opened = false;
+
+        /**
+         * The sequence. Three stages, each a class the CSS animates; the
+         * script only decides when one stage ends and the next begins, so the
+         * animation itself stays on the compositor.
+         *
+         *   is-opening  the envelope unseals / the doors part / the scroll
+         *               unrolls / the card unfolds
+         *   is-forward  the card turns and comes forward out of the screen
+         *   is-done     the cover fades and the invitation is underneath
+         */
         function open() {
-            const envelope = cover.querySelector('.inv-envelope');
-            if (envelope) { envelope.classList.add('is-open'); }
+            if (opened) { return; }
+            opened = true;
+
+            const scene = cover.querySelector('.inv-open__scene');
+            if (scene) { scene.style.willChange = 'transform'; }
+
+            cover.classList.add('is-opening');
+
             window.setTimeout(function () {
-                cover.classList.add('is-open');
-                document.body.classList.remove('inv-locked');
-                window.setTimeout(function () { cover.remove(); }, 750);
-                // Start the music only after a real user gesture, which is
-                // what browsers require anyway.
-                const music = document.querySelector('.inv-music');
-                if (music && music.getAttribute('data-inv-autoplay') === '1') {
-                    music.click();
-                }
-            }, envelope ? 700 : 100);
+                cover.classList.add('is-forward');
+                if (root) { root.classList.add('is-arriving'); }
+            }, 950);
+
+            window.setTimeout(function () {
+                dismiss(false);
+            }, 1850);
+
+            // Music needs a real gesture before it may play, and this is one.
+            const music = document.querySelector('.inv-music');
+            if (music && music.getAttribute('data-inv-autoplay') === '1') {
+                music.click();
+            }
+        }
+
+        function dismiss(immediate) {
+            document.body.classList.remove('inv-locked');
+            if (immediate) {
+                cover.remove();
+                return;
+            }
+            cover.classList.add('is-done');
+            window.setTimeout(function () {
+                cover.remove();
+                if (root) { root.classList.remove('is-arriving'); }
+            }, 600);
         }
 
         cover.querySelectorAll('[data-inv-open]').forEach(function (trigger) {
             trigger.addEventListener('click', open);
+            // The card itself is a button to a mouse but a div to a keyboard,
+            // so Enter and Space have to be wired by hand.
+            trigger.addEventListener('keydown', function (event) {
+                if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    open();
+                }
+            });
         });
+
         const skip = cover.querySelector('[data-inv-skip-button]');
         if (skip) {
-            skip.addEventListener('click', function () {
-                cover.remove();
-                document.body.classList.remove('inv-locked');
-            });
+            skip.addEventListener('click', function () { dismiss(true); });
         }
     }
 

@@ -325,6 +325,14 @@ final class TemplateContext
         'counter' => ['boxes', 'circles', 'inline', 'tablet'],
         // How the opening - invocation, names, date - is composed.
         'header'  => ['centered', 'banner', 'monogram', 'stacked', 'ribbon'],
+        /*
+         * How the card arrives. This is the first thing a guest sees, so it is
+         * part of the design rather than a global setting: an envelope that
+         * unseals, mandap doors that part, a patrika that unrolls, or a
+         * printed card that unfolds. Each ends the same way - the card turns
+         * and comes forward to the reader - so the content below is identical.
+         */
+        'opening' => ['envelope', 'doors', 'scroll', 'fold'],
     ];
 
     public function ornament(): string

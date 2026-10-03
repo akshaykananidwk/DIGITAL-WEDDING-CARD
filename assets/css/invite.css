@@ -186,32 +186,282 @@
 .inv-music[aria-pressed="true"] .inv-music__bars { animation: inv-bars 1s ease-in-out infinite alternate; }
 @keyframes inv-bars { from { transform: scaleY(.55); } to { transform: scaleY(1); } }
 
-/* ---- Cover / opening animation ---- */
+/* ---- The opening ----------------------------------------------------
+   Four ways the card can arrive, all of them CSS 3D: an envelope that
+   unseals, mandap doors that part, a patrika that unrolls, a printed card
+   that unfolds. Each ends with the same move - the card turns to face the
+   reader and comes forward out of the screen - which is the moment the whole
+   sequence exists for.
+
+   Only transform and opacity animate, so nothing reflows and a phone holds
+   its frame rate. The sequence is driven by classes the script adds in order
+   (is-opening, is-forward, is-done), never by JavaScript-per-frame.
+   -------------------------------------------------------------------- */
+
 .inv-cover {
     position: fixed; inset: 0; z-index: 60;
     display: grid; place-items: center; text-align: center;
     padding: 2rem 1.25rem;
-    background: var(--inv-background);
+    background:
+        radial-gradient(120% 80% at 50% 0, color-mix(in srgb, var(--inv-primary) 14%, transparent), transparent 70%),
+        var(--inv-background);
+    overflow: hidden;
 }
-.inv-cover.is-open { animation: inv-cover-out .7s ease forwards; }
-@keyframes inv-cover-out { to { opacity: 0; visibility: hidden; transform: scale(1.04); } }
-.inv-cover__skip { position: absolute; top: 1rem; right: 1rem; font-size: .78rem; background: none; border: 0; color: var(--inv-muted); text-decoration: underline; cursor: pointer; }
+.inv-cover.is-done { animation: inv-cover-out .55s ease forwards; }
+@keyframes inv-cover-out { to { opacity: 0; visibility: hidden; } }
+.inv-cover__skip {
+    position: absolute; top: 1rem; right: 1rem; z-index: 3;
+    font-size: .78rem; background: none; border: 0;
+    color: var(--inv-muted); text-decoration: underline; cursor: pointer;
+}
 
-/* Envelope: a CSS-only 3D open, no library and no images. */
-.inv-envelope { width: min(20rem, 78vw); margin: 0 auto 1.5rem; perspective: 1200px; }
-.inv-envelope__body { position: relative; aspect-ratio: 4 / 3; border-radius: 10px; background: color-mix(in srgb, var(--inv-primary) 12%, var(--inv-surface)); border: 1px solid var(--inv-border); box-shadow: 0 16px 34px rgba(0,0,0,.16); }
+/* The 3D space everything below lives in. */
+.inv-stage {
+    perspective: 1100px;
+    perspective-origin: 50% 42%;
+    width: min(23rem, 86vw);
+}
+.inv-open {
+    position: relative;
+    width: 100%;
+    margin: 0 auto 1.75rem;
+    cursor: pointer;
+    background: none; border: 0; padding: 0;
+    transform-style: preserve-3d;
+}
+.inv-open__scene {
+    position: relative;
+    aspect-ratio: 3 / 4;
+    transform-style: preserve-3d;
+    transform: rotateX(8deg) rotateZ(-1.5deg);
+    animation: inv-idle 6s ease-in-out infinite;
+}
+/* A card never sits perfectly still; a slow drift makes it feel held. */
+@keyframes inv-idle {
+    0%, 100% { transform: rotateX(8deg) rotateZ(-1.5deg) translateY(0); }
+    50%      { transform: rotateX(6deg) rotateZ(1deg) translateY(-10px); }
+}
+
+/* The card that will come forward. */
+.inv-letter {
+    position: absolute;
+    inset: 8% 7% 10% 7%;
+    border-radius: calc(var(--inv-radius) * .7);
+    background: var(--inv-surface);
+    border: 1px solid color-mix(in srgb, var(--inv-secondary) 55%, transparent);
+    box-shadow: 0 10px 26px rgba(0, 0, 0, .18);
+    display: grid; align-content: center; gap: .35rem;
+    padding: 1.2rem .9rem;
+    transform-style: preserve-3d;
+    backface-visibility: hidden;
+    z-index: 1;
+}
+.inv-letter .inv-ornament { width: 72px; }
+.inv-letter__names {
+    font-family: var(--inv-heading-font);
+    color: var(--inv-primary);
+    font-size: calc(1.55rem * var(--inv-heading-scale));
+    line-height: 1.15; margin: .3rem 0 0;
+}
+.inv-cover__amp { display: block; font-size: .8em; opacity: .75; }
+.inv-letter__date { font-size: .74rem; letter-spacing: .08em; color: var(--inv-muted); margin: 0; }
+
+/* ---- Envelope ---- */
+.inv-envelope__back, .inv-envelope__front, .inv-envelope__flap {
+    position: absolute;
+    left: 0; right: 0;
+    border-radius: 10px;
+    backface-visibility: hidden;
+}
+.inv-envelope__back {
+    top: 18%; bottom: 0;
+    background: color-mix(in srgb, var(--inv-primary) 18%, var(--inv-surface));
+    border: 1px solid var(--inv-border);
+}
+.inv-envelope__front {
+    top: 42%; bottom: 0;
+    background: color-mix(in srgb, var(--inv-primary) 88%, #000);
+    border-radius: 0 0 10px 10px;
+    box-shadow: 0 -2px 10px rgba(0, 0, 0, .18) inset, 0 18px 36px rgba(0, 0, 0, .22);
+    z-index: 2;
+    /* The pocket's diagonal seams, as a real envelope folds. */
+    background-image:
+        linear-gradient(to bottom right, color-mix(in srgb, #000 12%, transparent) 49.6%, transparent 50%),
+        linear-gradient(to bottom left, color-mix(in srgb, #000 12%, transparent) 49.6%, transparent 50%);
+    background-size: 50% 100%, 50% 100%;
+    background-position: left, right;
+    background-repeat: no-repeat;
+}
 .inv-envelope__flap {
-    position: absolute; inset: 0 0 auto 0; height: 58%;
-    background: var(--inv-primary);
+    top: 18%; height: 30%;
+    background: color-mix(in srgb, var(--inv-primary) 70%, #000);
     clip-path: polygon(0 0, 100% 0, 50% 100%);
     transform-origin: top center;
-    transition: transform .85s cubic-bezier(.22,.85,.25,1);
-    border-radius: 10px 10px 0 0;
+    transform: rotateX(0deg);
+    transition: transform .8s cubic-bezier(.3, .8, .25, 1);
+    z-index: 3;
 }
-.inv-envelope.is-open .inv-envelope__flap { transform: rotateX(180deg); }
-.inv-envelope__seal { position: absolute; left: 50%; top: 52%; transform: translate(-50%, -50%); width: 3rem; height: 3rem; border-radius: 999px; background: var(--inv-secondary); color: #3B2A00; display: grid; place-items: center; font-family: var(--inv-heading-font); font-size: 1.4rem; box-shadow: 0 4px 10px rgba(0,0,0,.2); z-index: 2; }
-.inv-envelope__letter { position: absolute; left: 6%; right: 6%; bottom: 6%; top: 24%; background: var(--inv-surface); border-radius: 6px; border: 1px solid var(--inv-border); transition: transform .85s ease .25s; }
-.inv-envelope.is-open .inv-envelope__letter { transform: translateY(-38%); }
+.inv-envelope__seal {
+    position: absolute; left: 50%; top: 44%;
+    transform: translate(-50%, -50%);
+    width: 2.9rem; height: 2.9rem; border-radius: 999px;
+    background: var(--inv-secondary); color: #3B2A00;
+    display: grid; place-items: center;
+    font-family: var(--inv-heading-font); font-size: 1.35rem;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, .25);
+    transition: transform .4s ease, opacity .4s ease;
+    z-index: 4;
+}
+.inv-open--envelope .inv-letter { inset: 20% 11% 6% 11%; transition: transform .9s cubic-bezier(.3, .8, .25, 1) .35s; }
+
+.is-opening .inv-envelope__seal { transform: translate(-50%, -50%) scale(.3) rotate(25deg); opacity: 0; }
+.is-opening .inv-envelope__flap { transform: rotateX(-172deg); }
+.is-opening .inv-open--envelope .inv-letter { transform: translateY(-46%) translateZ(30px); }
+
+/* ---- Doors ---- */
+.inv-door {
+    position: absolute; top: 2%; bottom: 2%; width: 50%;
+    background:
+        linear-gradient(180deg, color-mix(in srgb, var(--inv-primary) 92%, #000), color-mix(in srgb, var(--inv-primary) 70%, #000)),
+        var(--inv-primary);
+    border: 1px solid color-mix(in srgb, var(--inv-secondary) 60%, transparent);
+    transition: transform 1.05s cubic-bezier(.4, .75, .2, 1);
+    z-index: 3;
+    display: grid; place-items: center;
+}
+.inv-door::after {
+    /* A carved panel line, so a door does not read as a plain rectangle. */
+    content: '';
+    position: absolute; inset: 7%;
+    border: 1px solid color-mix(in srgb, var(--inv-secondary) 45%, transparent);
+    border-radius: 6rem 6rem .3rem .3rem;
+}
+.inv-door--left  { left: 0;  transform-origin: left center;  border-radius: 7rem 0 0 .4rem; }
+.inv-door--right { right: 0; transform-origin: right center; border-radius: 0 7rem .4rem 0; }
+.inv-door__ring {
+    width: .8rem; height: .8rem; border-radius: 999px;
+    border: 2px solid var(--inv-secondary);
+    position: absolute; top: 52%;
+}
+.inv-door--left .inv-door__ring { right: .5rem; }
+.inv-door--right .inv-door__ring { left: .5rem; }
+
+.is-opening .inv-door--left  { transform: rotateY(-105deg); }
+.is-opening .inv-door--right { transform: rotateY(105deg); }
+
+/* ---- Scroll ---- */
+.inv-scroll__rod {
+    position: absolute; left: -2%; right: -2%; height: .62rem;
+    border-radius: 999px;
+    background: linear-gradient(180deg, var(--inv-secondary), color-mix(in srgb, var(--inv-secondary) 55%, #000));
+    box-shadow: 0 2px 6px rgba(0, 0, 0, .3);
+    z-index: 4;
+}
+.inv-scroll__rod--top { top: 6%; }
+/*
+ * The lower rod has to sit on the paper's edge as it unrolls. The paper grows
+ * with scaleY, whose travel in pixels depends on the scene's height, so the
+ * rod is animated by `top` on the same curve instead of a transform guessed in
+ * rem - one absolutely positioned element, and it stays glued to the edge.
+ */
+.inv-scroll__rod--bottom { top: 7%; transition: top 1s cubic-bezier(.35, .8, .25, 1); }
+.is-opening .inv-scroll__rod--bottom { top: 90%; }
+.inv-letter--scroll {
+    inset: 7% 7% 9% 7%;
+    transform-origin: top center;
+    transform: scaleY(.06);
+    opacity: .9;
+    transition: transform 1s cubic-bezier(.35, .8, .25, 1), opacity .5s ease;
+    border-radius: 2px;
+}
+.is-opening .inv-letter--scroll { transform: scaleY(1); opacity: 1; }
+
+/* ---- Fold ---- */
+.inv-wing {
+    position: absolute; top: 8%; bottom: 10%; width: 46.5%;
+    overflow: hidden;
+    background: linear-gradient(180deg, color-mix(in srgb, var(--inv-primary) 86%, #000), color-mix(in srgb, var(--inv-primary) 64%, #000));
+    border: 1px solid color-mix(in srgb, var(--inv-secondary) 50%, transparent);
+    transition: transform 1.15s cubic-bezier(.4, .75, .2, 1);
+    z-index: 3;
+    backface-visibility: hidden;
+}
+.inv-wing::after {
+    content: '';
+    position: absolute; inset: 12%;
+    border: 1px dashed color-mix(in srgb, var(--inv-secondary) 40%, transparent);
+    border-radius: 4px;
+}
+.inv-wing--left  { left: 7%;  transform-origin: left center;  border-radius: 4px 0 0 4px; }
+.inv-wing--right { right: 7%; transform-origin: right center; border-radius: 0 4px 4px 0; }
+.is-opening .inv-wing--left  { transform: rotateY(-162deg); }
+.is-opening .inv-wing--right { transform: rotateY(162deg); }
+/* A printed kankotri is not blank on the outside. */
+.inv-fold__motif {
+    position: absolute; left: 14%; right: 14%; top: 42%;
+    z-index: 4;
+    color: color-mix(in srgb, var(--inv-secondary) 85%, transparent);
+    transition: opacity .35s ease, transform .5s ease;
+}
+.inv-fold__motif .inv-ornament { width: 100%; }
+.is-opening .inv-fold__motif { opacity: 0; transform: scale(.8); }
+
+/* ---- The move the whole sequence is for: the card comes forward ----
+   It turns a few degrees, grows as it approaches, and lifts off the page.
+   Perspective is on .inv-stage, so translateZ reads as real distance. */
+.is-forward .inv-open__scene { animation: none; }
+.is-forward .inv-letter {
+    animation: inv-forward 1.15s cubic-bezier(.33, .9, .25, 1) forwards;
+    z-index: 5;
+    box-shadow: 0 30px 70px rgba(0, 0, 0, .35);
+}
+@keyframes inv-forward {
+    /* Out of the envelope, a turn to face the reader, then straight at them -
+       holding full opacity almost to the end so it reads as flying past
+       rather than dissolving. The invitation underneath is already arriving,
+       so the two meet. */
+    0%   { transform: translateZ(0) rotateY(0) scale(1); opacity: 1; }
+    30%  { transform: translateZ(70px) rotateY(-10deg) scale(1.06); opacity: 1; }
+    70%  { transform: translateZ(300px) rotateY(-2deg) scale(1.32); opacity: 1; }
+    88%  { transform: translateZ(520px) rotateY(0) scale(1.72); opacity: .55; }
+    100% { transform: translateZ(680px) rotateY(0) scale(2.1); opacity: 0; }
+}
+/* Everything the card leaves behind recedes while it advances. */
+.is-forward .inv-envelope__back,
+.is-forward .inv-envelope__front,
+.is-forward .inv-envelope__flap,
+.is-forward .inv-door,
+.is-forward .inv-wing,
+.is-forward .inv-scroll__rod,
+.is-forward .inv-cover__caption {
+    transition: transform .8s ease, opacity .8s ease;
+    transform: translateZ(-160px) scale(.9);
+    opacity: 0;
+}
+
+.inv-cover__title {
+    font-family: var(--inv-heading-font);
+    color: var(--inv-primary);
+    font-size: calc(2.2rem * var(--inv-heading-scale));
+    line-height: 1.1; margin: 0;
+}
+.inv-cover__caption { transition: opacity .4s ease; }
+.inv-btn__arrow { display: inline-block; transition: transform .25s ease; }
+.inv-btn:hover .inv-btn__arrow { transform: translateX(3px); }
+
+/* The content behind the cover comes up to meet the card. */
+.inv-root.is-arriving .inv-page { animation: inv-arrive .85s cubic-bezier(.25, .9, .3, 1) both; }
+@keyframes inv-arrive {
+    /* Rising slightly from behind, so the card the reader just flew through
+       becomes the card they are now reading. */
+    from { opacity: 0; transform: translateY(30px) scale(.96); }
+    60%  { opacity: 1; }
+    to   { opacity: 1; transform: none; }
+}
+
+/* Gentle motion keeps the sequence but drops the flourish; none skips it. */
+.inv-root[data-motion="gentle"] .inv-open__scene { animation: none; }
+.inv-root[data-motion="none"] .inv-cover { display: none; }
 
 /* Page-turn book layout */
 .inv-book { position: relative; }

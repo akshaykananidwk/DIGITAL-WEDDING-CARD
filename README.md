@@ -48,11 +48,19 @@ repeating itself:
 |---|---|---|
 | `layout_key` | the order and grouping of the content | 10 PHP renderers |
 | palette + font pair | the colour and the type | 16 x 6 |
-| **style pack** | the *shape*: card frame, background pattern, section divider, panel treatment, countdown form, header composition, motif | 16 packs over 6 axes, 20 motifs |
+| **style pack** | the *shape*: how the card **arrives**, its frame, background pattern, section divider, panel treatment, countdown form, header composition, motif | 16 packs over 7 axes, 20 motifs |
 
 Colour alone was not enough - a dozen mandir templates differed only in palette and
 read as the same card. A pack changes structure, and the seeder never gives two
 templates on one layout the same pack.
+
+**The opening** is the first of those axes. A card arrives in one of four ways - an
+envelope that unseals, mandap doors that part, a patrika that unrolls, a printed card
+that unfolds - and each ends the same way: the card turns to face the reader and comes
+forward out of the screen while the invitation rises behind it. It is CSS 3D
+throughout (transform and opacity only, no library, no images), and it stands down
+entirely for `prefers-reduced-motion`, for the skip link, and for the owner's
+"skip animation" setting.
 
 A bespoke card that needs more than its layout offers can instead be built from
 `template_components` in the admin panel: blocks with `{{field_key}}` placeholders,
@@ -100,7 +108,7 @@ php bin/console pdf:test
 ## Tests
 
 ```bash
-php tests/run.php                  # 694 checks, 9 cases, no dependencies
+php tests/run.php                  # 764 checks, 9 cases, no dependencies
 php tests/run.php Security         # one case
 php tests/run.php --json           # machine readable
 ```
